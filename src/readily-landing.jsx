@@ -344,12 +344,13 @@ export default function ReadilyLanding({ onLogin, onSignUp }) {
             {/* Headline statement */}
             <Reveal>
               <div style={{ textAlign: "center", marginBottom: 64 }}>
-                <h2 style={{ fontSize: "clamp(22px,3.2vw,36px)", fontWeight: 900, color: C.ink, lineHeight: 1.35, letterSpacing: "-0.02em", maxWidth: 720, margin: "0 auto 16px" }}>
-                  Families of children with special needs carry the heavy burden of coordinating care across multiple providers, with critical information often fragmented or lost.
-                </h2>
-                <p style={{ fontSize: "clamp(16px,2vw,20px)", color: C.teal, fontWeight: 700, lineHeight: 1.5, maxWidth: 620, margin: "0 auto" }}>
-                  Readily brings clarity by keeping everything organized, connected, and secure in one place.
+                <p style={{ fontSize: "clamp(15px,1.8vw,18px)", color: C.ink3, fontWeight: 500, lineHeight: 1.7, maxWidth: 680, margin: "0 auto 20px", fontStyle: "italic" }}>
+                  Your special needs child has a team of providers. None of them have the full picture. You're the one holding it all together — alone.
                 </p>
+                <h2 style={{ fontSize: "clamp(26px,3.8vw,46px)", fontWeight: 900, color: C.teal, lineHeight: 1.2, letterSpacing: "-0.03em", maxWidth: 760, margin: "0 auto 14px" }}>
+                  Readily gives every provider what they need, keeps you in control, and puts the whole picture in one place.
+                </h2>
+                <div style={{ width: 48, height: 4, background: `linear-gradient(90deg,${C.teal},${C.indigo})`, borderRadius: 2, margin: "0 auto" }} />
               </div>
             </Reveal>
 
@@ -358,7 +359,7 @@ export default function ReadilyLanding({ onLogin, onSignUp }) {
               {[
                 {
                   emoji: "😮‍💨",
-                  pain: "You re-explain your child's triggers, motivators, and history at every new intake, school meeting, and provider handoff.",
+                  pain: "Why do I have to re-explain my child's history to every new provider, teacher, and caregiver?",
                   solutionName: "Readily's Care Passport",
                   solution: "captures everything once. Share it with any new provider, teacher, or caregiver — they arrive informed, every time.",
                   color: C.teal,
@@ -366,7 +367,7 @@ export default function ReadilyLanding({ onLogin, onSignUp }) {
                 },
                 {
                   emoji: "📱",
-                  pain: "You're the human relay between 3–7 providers who never talk to each other — texting updates, forwarding notes, making calls.",
+                  pain: "Why am I the one texting, calling, and forwarding notes between everyone on my child's care team?",
                   solutionName: "Readily's Provider Log",
                   solution: "lets each provider share session notes directly with you — the parent. You see everything. Providers only see what you choose to share with them.",
                   color: C.indigo,
@@ -374,7 +375,7 @@ export default function ReadilyLanding({ onLogin, onSignUp }) {
                 },
                 {
                   emoji: "💸",
-                  pain: "You have no idea what you're actually spending on therapy until the end of the year — across deductibles, copays, and out-of-network.",
+                  pain: "Why is it so hard to know what therapy is actually costing my family — month to month?",
                   solutionName: "Readily's Cost Planner",
                   solution: "maps every therapy into one annual view. Know your numbers before you're blindsided.",
                   color: C.gold,
@@ -382,7 +383,7 @@ export default function ReadilyLanding({ onLogin, onSignUp }) {
                 },
                 {
                   emoji: "📋",
-                  pain: "Session notes live in binders, email threads, or in providers' systems — never in one place where you can see the full picture.",
+                  pain: "Why do I have to chase down session notes from providers — when it's my child's progress?",
                   solutionName: "Readily's Weekly Digest",
                   solution: "pulls every session note into one readable summary for you, every week. One place, one picture.",
                   color: "#7c3aed",
@@ -391,24 +392,20 @@ export default function ReadilyLanding({ onLogin, onSignUp }) {
               ].map((item, i) => (
                 <Reveal key={i} delay={i * 80}>
                   <div style={{ borderRadius: 16, border: "1px solid #e8e4de", overflow: "hidden", background: C.white }}>
-                    {/* Pain row */}
-                    <div style={{ display: "flex", gap: 14, alignItems: "flex-start", padding: "20px 24px", background: "#faf9f7", borderBottom: `1px solid #e8e4de` }}>
-                      <span style={{ fontSize: 22, flexShrink: 0, marginTop: 2 }}>{item.emoji}</span>
-                      <p style={{ margin: 0, fontSize: 15, color: C.ink2, fontFamily: "'Outfit',sans-serif", lineHeight: 1.6 }}>{item.pain}</p>
+                    {/* Pain row — question feels like the parent's inner voice */}
+                    <div style={{ display: "flex", gap: 14, alignItems: "flex-start", padding: "18px 24px", background: "#faf9f7", borderBottom: `1px solid #e8e4de` }}>
+                      <span style={{ fontSize: 20, flexShrink: 0, marginTop: 3, opacity: 0.7 }}>{item.emoji}</span>
+                      <p style={{ margin: 0, fontSize: 15, color: C.ink3, fontFamily: "'Outfit',sans-serif", lineHeight: 1.65, fontStyle: "italic", fontWeight: 500 }}>{item.pain}</p>
                     </div>
-                    {/* Solution row */}
+                    {/* Solution row — Readily's answer, visually dominant */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 0, alignItems: "center" }}>
-                      <div style={{ padding: "20px 24px", borderRight: "1px solid #e8e4de" }}>
-                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                          <div style={{ width: 22, height: 22, borderRadius: "50%", background: item.color+"18", border: `1.5px solid ${item.color}44`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
-                            <span style={{ fontSize: 11, color: item.color, fontWeight: 800 }}>✓</span>
-                          </div>
-                          <p style={{ margin: 0, fontSize: 14, color: C.ink2, fontFamily: "'Outfit',sans-serif", lineHeight: 1.65 }}>
-                            <strong style={{ color: item.color, fontWeight: 800 }}>{item.solutionName}</strong>{" "}{item.solution}
-                          </p>
-                        </div>
+                      <div style={{ padding: "22px 24px", borderRight: "1px solid #e8e4de", borderLeft: `4px solid ${item.color}` }}>
+                        <div style={{ fontSize: 10, fontWeight: 800, color: item.color, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8, fontFamily: "'Outfit',sans-serif" }}>Readily's answer</div>
+                        <p style={{ margin: 0, fontSize: 15, color: C.ink, fontFamily: "'Outfit',sans-serif", lineHeight: 1.7, fontWeight: 500 }}>
+                          <strong style={{ color: item.color, fontWeight: 800, fontSize: 16 }}>{item.solutionName}</strong>{" "}{item.solution}
+                        </p>
                       </div>
-                      <div style={{ padding: "16px 20px" }}>
+                      <div style={{ padding: "16px 20px", background: item.color+"06" }}>
                         <div style={{ transform: "scale(0.85)", transformOrigin: "top left", maxHeight: 200, overflow: "hidden", borderRadius: 10 }}>
                           {item.visual}
                         </div>
