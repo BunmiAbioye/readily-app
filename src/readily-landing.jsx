@@ -1,113 +1,236 @@
 import { useState, useEffect, useRef } from "react";
+import { supabase } from "./supabase";
 
-// ── Design tokens ──────────────────────────────────────────────────────────
-const FOREST  = "#0d2b1e";
-const FOREST2 = "#163324";
-const MOSS    = "#1e4d30";
-const SAGE    = "#3a7d54";
-const MINT    = "#6dbf8c";
-const CREAM   = "#fdf6ec";
-const WARM    = "#f5ede0";
-const WARM2   = "#eddcc8";
-const GOLD    = "#c8891e";
-const GOLD_L  = "#f5c76a";
-const INK     = "#1a120a";
-const INK2    = "#3d2e1e";
-const INK3    = "#7a6550";
-const INK4    = "#b09a82";
-const WHITE   = "#ffffff";
-const ROSE    = "#c0392b";
+// ─── TOKENS ────────────────────────────────────────────────────────────────
+const C = {
+  bg:      "#f7f5f2",
+  white:   "#ffffff",
+  ink:     "#0f0e0c",
+  ink2:    "#2d2b27",
+  ink3:    "#6b6760",
+  ink4:    "#a8a49e",
+  teal:    "#0d9488",
+  tealD:   "#0f766e",
+  tealL:   "#ccfbf1",
+  indigo:  "#4338ca",
+  indigoL: "#e0e7ff",
+  gold:    "#d97706",
+  goldL:   "#fef3c7",
+  rose:    "#be123c",
+  nav:     "#0c1a2e",
+  navL:    "rgba(255,255,255,0.06)",
+};
 
-// ── Scroll reveal hook ─────────────────────────────────────────────────────
-function useInView(threshold = 0.15) {
+// ─── SCROLL REVEAL ─────────────────────────────────────────────────────────
+function useInView(threshold = 0.1) {
   const ref = useRef(null);
-  const [visible, setVisible] = useState(false);
+  const [vis, setVis] = useState(false);
   useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { threshold });
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVis(true); }, { threshold });
     if (ref.current) obs.observe(ref.current);
     return () => obs.disconnect();
   }, []);
-  return [ref, visible];
+  return [ref, vis];
 }
 
-function Reveal({ children, delay = 0, y = 24 }) {
-  const [ref, visible] = useInView();
+function Reveal({ children, delay = 0, y = 20 }) {
+  const [ref, vis] = useInView();
   return (
-    <div ref={ref} style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : `translateY(${y}px)`, transition: `opacity 0.7s ease ${delay}ms, transform 0.7s ease ${delay}ms` }}>
+    <div ref={ref} style={{ opacity: vis ? 1 : 0, transform: vis ? "none" : `translateY(${y}px)`, transition: `opacity 0.6s ease ${delay}ms, transform 0.6s ease ${delay}ms` }}>
       {children}
     </div>
   );
 }
 
-// ── Waitlist form ──────────────────────────────────────────────────────────
-function WaitlistForm({ dark = false }) {
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState("parent");
-  const [submitted, setSubmitted] = useState(false);
+// ─── WAITLIST FORM ─────────────────────────────────────────────────────────
+function WaitlistForm({ dark = false, size = "default" }) {
+  const [email, setEmail]     = useState("");
+  const [role, setRole]       = useState("parent");
+  const [loading, setLoading] = useState(false);
+  const [done, setDone]       = useState(false);
+  const [error, setError]     = useState("");
 
-  const bg        = dark ? "rgba(255,255,255,0.08)" : WHITE;
-  const border    = dark ? "rgba(255,255,255,0.15)" : WARM2;
-  const textCol   = dark ? WHITE : INK;
-  const placeholderNote = dark ? "rgba(255,255,255,0.4)" : INK4;
+  const handleSubmit = async () => {
+    if (!email.trim() || !email.includes("@")) { setError("Please enter a valid email."); return; }
+    setLoading(true); setError("");
+    try {
+      const { error: sbError } = await supabase.from("waitlist").upsert({ email: email.trim().toLowerCase(), role, signed_up_at: new Date().toISOString() }, { onConflict: "email" });
+      if (sbError) throw sbError;
+      setDone(true);
+    } catch (e) {
+      console.error(e);
+      setError("Something went wrong. Try again.");
+    } finally { setLoading(false); }
+  };
 
-  if (submitted) return (
-    <div style={{ padding: "20px 24px", background: dark ? "rgba(109,191,140,0.15)" : "#f0fdf4", borderRadius: 14, border: `1px solid ${dark ? MINT+"44" : "#86efac"}`, textAlign: "center" }}>
-      <div style={{ fontSize: 28, marginBottom: 8 }}>🌱</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: dark ? MINT : SAGE, fontFamily: "'Fraunces', serif", marginBottom: 4 }}>You're on the list!</div>
-      <div style={{ fontSize: 13, color: dark ? "rgba(255,255,255,0.6)" : INK3, fontFamily: "'Lato', sans-serif" }}>We'll be in touch soon. Thank you for being part of this.</div>
+  const borderColor  = dark ? "rgba(255,255,255,0.15)" : "#d6d0c8";
+  const inputBg      = dark ? "rgba(255,255,255,0.07)" : C.white;
+  const inputColor   = dark ? C.white : C.ink;
+  const labelColor   = dark ? "rgba(255,255,255,0.5)" : C.ink3;
+  const isLarge      = size === "large";
+
+  if (done) return (
+    <div style={{ padding: "20px 24px", background: dark ? "rgba(13,148,136,0.15)" : C.tealL, borderRadius: 14, border: `1px solid ${dark ? C.teal+"55" : C.teal+"44"}`, textAlign: "center" }}>
+      <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: dark ? "#fff" : C.tealD, fontFamily: "'Outfit', sans-serif", marginBottom: 4 }}>You're on the list!</div>
+      <div style={{ fontSize: 13, color: dark ? "rgba(255,255,255,0.55)" : C.ink3, fontFamily: "'Outfit', sans-serif", lineHeight: 1.5 }}>We'll reach out personally to set up your child's profile. Check your inbox.</div>
     </div>
   );
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-        {[["parent", "I'm a parent"], ["provider", "I'm a provider"], ["both", "I'm both"]].map(([val, lbl]) => (
-          <button key={val} onClick={() => setRole(val)} style={{ padding: "7px 14px", borderRadius: 20, border: role === val ? `2px solid ${dark ? MINT : SAGE}` : `1.5px solid ${border}`, background: role === val ? (dark ? MINT + "22" : SAGE + "12") : "transparent", color: role === val ? (dark ? MINT : SAGE) : (dark ? "rgba(255,255,255,0.5)" : INK3), fontFamily: "'Lato', sans-serif", fontSize: 13, fontWeight: role === val ? 700 : 400, cursor: "pointer", transition: "all 0.15s" }}>{lbl}</button>
+      {/* Role selector */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+        {[["parent","👨‍👩‍👧 Parent / Caregiver"],["provider","🩺 Therapist / Teacher"]].map(([val, lbl]) => (
+          <button key={val} onClick={() => setRole(val)} style={{ padding: "6px 14px", borderRadius: 20, border: role === val ? `2px solid ${C.teal}` : `1.5px solid ${borderColor}`, background: role === val ? C.teal + "18" : "transparent", color: role === val ? (dark ? "#5eead4" : C.tealD) : labelColor, fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: role === val ? 700 : 400, cursor: "pointer", transition: "all 0.15s" }}>{lbl}</button>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+      {/* Email input */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <input
-          type="email" value={email} onChange={e => setEmail(e.target.value)}
+          type="email"
+          value={email}
+          onChange={e => { setEmail(e.target.value); setError(""); }}
+          onKeyDown={e => e.key === "Enter" && handleSubmit()}
           placeholder="your@email.com"
-          onKeyDown={e => e.key === "Enter" && email && setSubmitted(true)}
-          style={{ flex: 1, padding: "12px 16px", background: bg, border: `1.5px solid ${border}`, borderRadius: 10, fontFamily: "'Lato', sans-serif", fontSize: 14, color: textCol, outline: "none" }}
+          style={{ flex: 1, minWidth: 200, padding: isLarge ? "14px 18px" : "12px 16px", background: inputBg, border: `1.5px solid ${error ? C.rose : borderColor}`, borderRadius: 10, fontFamily: "'Outfit', sans-serif", fontSize: isLarge ? 16 : 14, color: inputColor, outline: "none", transition: "border-color 0.2s" }}
+          onFocus={e => e.target.style.borderColor = C.teal}
+          onBlur={e => e.target.style.borderColor = error ? C.rose : borderColor}
         />
-        <button onClick={() => email && setSubmitted(true)} style={{ padding: "12px 20px", background: `linear-gradient(135deg, ${GOLD}, ${SAGE})`, border: "none", borderRadius: 10, color: WHITE, fontFamily: "'Lato', sans-serif", fontWeight: 700, fontSize: 14, cursor: "pointer", whiteSpace: "nowrap", boxShadow: "0 4px 14px rgba(200,137,30,0.35)" }}>
-          Join waitlist →
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          style={{ padding: isLarge ? "14px 28px" : "12px 22px", background: loading ? C.ink3 : `linear-gradient(135deg,${C.teal},${C.tealD})`, border: "none", borderRadius: 10, color: "#fff", fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: isLarge ? 16 : 14, cursor: loading ? "not-allowed" : "pointer", whiteSpace: "nowrap", boxShadow: loading ? "none" : `0 4px 16px ${C.teal}44`, transition: "all 0.2s" }}>
+          {loading ? "Joining…" : "Join waitlist →"}
         </button>
       </div>
-      <div style={{ fontSize: 11, color: dark ? "rgba(255,255,255,0.35)" : INK4, fontFamily: "'Lato', sans-serif", marginTop: 8 }}>No spam. No pressure. Just early access when we're ready.</div>
+      {error && <div style={{ fontSize: 12, color: C.rose, fontFamily: "'Outfit', sans-serif", marginTop: 6 }}>{error}</div>}
+      <div style={{ fontSize: 11, color: labelColor, fontFamily: "'Outfit', sans-serif", marginTop: 8 }}>No spam. No credit card. Just early access.</div>
     </div>
   );
 }
 
-// ── Feature card ───────────────────────────────────────────────────────────
-function FeatureCard({ icon, title, body, accent, delay }) {
+// ─── PROBLEM STATEMENT CARD ────────────────────────────────────────────────
+function PainCard({ emoji, text, delay }) {
   return (
     <Reveal delay={delay}>
-      <div style={{ background: WHITE, borderRadius: 18, padding: "28px 26px", border: `1px solid ${WARM2}`, boxShadow: "0 2px 12px rgba(26,18,10,0.06)", height: "100%", transition: "transform 0.2s, box-shadow 0.2s" }}
-        onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 8px 32px rgba(26,18,10,0.1)`; }}
-        onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 12px rgba(26,18,10,0.06)"; }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: accent + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginBottom: 16 }}>{icon}</div>
-        <h3 style={{ margin: "0 0 10px", fontSize: 18, fontWeight: 700, color: INK, fontFamily: "'Fraunces', serif", lineHeight: 1.3 }}>{title}</h3>
-        <p style={{ margin: 0, fontSize: 14, color: INK3, fontFamily: "'Lato', sans-serif", lineHeight: 1.7 }}>{body}</p>
+      <div style={{ display: "flex", gap: 14, alignItems: "flex-start", padding: "16px 18px", background: C.white, borderRadius: 12, border: `1px solid #e8e4de`, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+        <span style={{ fontSize: 22, flexShrink: 0, marginTop: 1 }}>{emoji}</span>
+        <p style={{ margin: 0, fontSize: 14, color: C.ink2, fontFamily: "'Outfit', sans-serif", lineHeight: 1.6 }}>{text}</p>
       </div>
     </Reveal>
   );
 }
 
-// ── Testimonial ────────────────────────────────────────────────────────────
-function Testimonial({ quote, name, role, avatar, delay }) {
+// ─── FEATURE ROW ──────────────────────────────────────────────────────────
+function FeatureRow({ number, label, title, body, visual, flip, delay }) {
   return (
     <Reveal delay={delay}>
-      <div style={{ background: WARM, borderRadius: 18, padding: "26px 24px", border: `1px solid ${WARM2}` }}>
-        <div style={{ fontSize: 32, color: GOLD, fontFamily: "'Fraunces', serif", lineHeight: 1, marginBottom: 12, opacity: 0.6 }}>"</div>
-        <p style={{ margin: "0 0 20px", fontSize: 15, color: INK2, fontFamily: "'Lato', sans-serif", lineHeight: 1.75, fontStyle: "italic" }}>{quote}</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 40, alignItems: "center", direction: flip ? "rtl" : "ltr" }}>
+        <div style={{ direction: "ltr" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "4px 12px", background: C.teal + "12", borderRadius: 20, marginBottom: 14 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, color: C.teal, fontFamily: "'Outfit', sans-serif", letterSpacing: "0.08em" }}>0{number}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: C.teal, fontFamily: "'Outfit', sans-serif", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</span>
+          </div>
+          <h3 style={{ margin: "0 0 12px", fontSize: "clamp(20px,2.5vw,26px)", fontWeight: 800, color: C.ink, fontFamily: "'Outfit', sans-serif", lineHeight: 1.2 }}>{title}</h3>
+          <p style={{ margin: 0, fontSize: 15, color: C.ink3, fontFamily: "'Outfit', sans-serif", lineHeight: 1.75 }}>{body}</p>
+        </div>
+        <div style={{ direction: "ltr" }}>{visual}</div>
+      </div>
+    </Reveal>
+  );
+}
+
+// ─── MOCK UI COMPONENTS ────────────────────────────────────────────────────
+function PassportMock() {
+  return (
+    <div style={{ background: "#0c1a2e", borderRadius: 18, padding: 20, boxShadow: "0 12px 40px rgba(12,26,46,0.25)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <div style={{ width: 38, height: 38, borderRadius: "50%", background: `linear-gradient(135deg,${C.teal},${C.indigo})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: "#fff", fontFamily: "'Outfit',sans-serif" }}>M</div>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", fontFamily: "'Outfit',sans-serif" }}>Maya, 7</div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontFamily: "'Outfit',sans-serif" }}>ASD Level 2 · Sunridge Elementary</div>
+        </div>
+        <div style={{ marginLeft: "auto", padding: "3px 10px", background: C.teal+"22", borderRadius: 20, fontSize: 10, fontWeight: 700, color: "#5eead4", fontFamily: "'Outfit',sans-serif" }}>PASSPORT</div>
+      </div>
+      {[
+        { label: "✓ WHAT WORKS", color: "#4ade80", tags: ["Dinosaurs 🦕", "Deep pressure", "Visual schedule"] },
+        { label: "⚠ WATCH FOR", color: "#fb923c", tags: ["Loud sounds", "Unexpected changes"] },
+        { label: "💬 COMMUNICATION", color: "#60a5fa", tags: ["Verbal", "Picture cards"] },
+      ].map((s, i) => (
+        <div key={i} style={{ marginBottom: i < 2 ? 10 : 0 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: s.color, fontFamily: "'Outfit',sans-serif", letterSpacing: "0.1em", marginBottom: 6 }}>{s.label}</div>
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+            {s.tags.map(t => <span key={t} style={{ padding: "3px 9px", borderRadius: 20, background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.7)", fontSize: 11, fontFamily: "'Outfit',sans-serif" }}>{t}</span>)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DigestMock() {
+  return (
+    <div style={{ background: C.white, borderRadius: 18, padding: 20, border: "1px solid #e8e4de", boxShadow: "0 4px 20px rgba(0,0,0,0.07)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+        <div style={{ width: 18, height: 18, borderRadius: "50%", background: `linear-gradient(135deg,${C.gold},#fbbf24)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9 }}>✨</div>
+        <span style={{ fontSize: 10, fontWeight: 700, color: C.gold, fontFamily: "'Outfit',sans-serif", letterSpacing: "0.1em" }}>WEEKLY AI DIGEST · APR 7–11</span>
+      </div>
+      <h4 style={{ margin: "0 0 10px", fontSize: 16, fontWeight: 800, color: C.ink, fontFamily: "'Outfit',sans-serif", lineHeight: 1.3 }}>Maya had her best week yet — two providers noticed the same thing.</h4>
+      <p style={{ margin: "0 0 14px", fontSize: 12, color: C.ink3, fontFamily: "'Outfit',sans-serif", lineHeight: 1.6 }}>Both her speech therapist and ABA provider noted Maya is initiating more unprompted. The visual schedule is clearly working.</p>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+        <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "10px 12px" }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "#16a34a", fontFamily: "'Outfit',sans-serif", marginBottom: 4 }}>🏆 BIG WIN</div>
+          <div style={{ fontSize: 11, color: "#14532d", fontFamily: "'Outfit',sans-serif", lineHeight: 1.5 }}>Used 'I want' unprompted twice — a first.</div>
+        </div>
+        <div style={{ background: "#f0fdfa", borderRadius: 8, padding: "10px 12px" }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: C.teal, fontFamily: "'Outfit',sans-serif", marginBottom: 4 }}>🔍 PATTERN</div>
+          <div style={{ fontSize: 11, color: "#134e4a", fontFamily: "'Outfit',sans-serif", lineHeight: 1.5 }}>Morning sessions go better when routine starts on time.</div>
+        </div>
+      </div>
+      <div style={{ background: C.goldL, borderRadius: 8, padding: "8px 12px" }}>
+        <div style={{ fontSize: 9, fontWeight: 700, color: C.gold, fontFamily: "'Outfit',sans-serif", marginBottom: 3 }}>🏠 TRY AT HOME</div>
+        <div style={{ fontSize: 11, color: "#78350f", fontFamily: "'Outfit',sans-serif" }}>Ask "what do you want?" before meals — she's ready for this.</div>
+      </div>
+    </div>
+  );
+}
+
+function CostMock() {
+  return (
+    <div style={{ background: C.white, borderRadius: 18, padding: 20, border: "1px solid #e8e4de", boxShadow: "0 4px 20px rgba(0,0,0,0.07)" }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: C.ink3, fontFamily: "'Outfit',sans-serif", letterSpacing: "0.08em", marginBottom: 14 }}>2026 THERAPY COSTS</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+        {[{ l: "Gross Total", v: "$28,400", c: C.ink }, { l: "Insurance Covers", v: "$17,040", c: "#16a34a" }, { l: "Your Out-of-Pocket", v: "$11,360", c: C.rose }, { l: "Per Month", v: "$947", c: C.gold }].map((s, i) => (
+          <div key={i} style={{ background: i===2?"#fff1f2":i===1?"#f0fdf4":i===3?C.goldL:"#f7f5f2", borderRadius: 10, padding: "10px 12px" }}>
+            <div style={{ fontSize: 9, color: C.ink3, fontFamily: "'Outfit',sans-serif", marginBottom: 3 }}>{s.l}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: s.c, fontFamily: "'Outfit',sans-serif" }}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+      {[{ name: "Speech Therapy", oop: "$2,808", pct: 20, color: "#2563eb" }, { name: "ABA Therapy", oop: "$6,864", pct: 50, color: "#7c3aed" }, { name: "OT", oop: "$1,688", pct: 100, color: "#059669" }].map((t, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: i < 2 ? 8 : 0 }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.color, flexShrink: 0 }} />
+          <div style={{ flex: 1, fontSize: 12, color: C.ink2, fontFamily: "'Outfit',sans-serif" }}>{t.name}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, fontFamily: "'Outfit',sans-serif" }}>{t.oop} OOP</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── TESTIMONIAL ──────────────────────────────────────────────────────────
+function Quote({ text, name, role, color, delay }) {
+  return (
+    <Reveal delay={delay}>
+      <div style={{ background: C.white, borderRadius: 16, padding: "24px", border: "1px solid #e8e4de", height: "100%" }}>
+        <div style={{ fontSize: 32, color: C.teal, fontFamily: "'Outfit',sans-serif", lineHeight: 1, marginBottom: 10, opacity: 0.4 }}>"</div>
+        <p style={{ margin: "0 0 20px", fontSize: 14, color: C.ink2, fontFamily: "'Outfit',sans-serif", lineHeight: 1.75, fontStyle: "italic" }}>{text}</p>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 38, height: 38, borderRadius: "50%", background: avatar, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{name[0]}</div>
+          <div style={{ width: 34, height: 34, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff", fontFamily: "'Outfit',sans-serif", flexShrink: 0 }}>{name[0]}</div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: INK, fontFamily: "'Lato', sans-serif" }}>{name}</div>
-            <div style={{ fontSize: 12, color: INK4, fontFamily: "'Lato', sans-serif" }}>{role}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, fontFamily: "'Outfit',sans-serif" }}>{name}</div>
+            <div style={{ fontSize: 11, color: C.ink4, fontFamily: "'Outfit',sans-serif" }}>{role}</div>
           </div>
         </div>
       </div>
@@ -115,151 +238,188 @@ function Testimonial({ quote, name, role, avatar, delay }) {
   );
 }
 
-// ── How it works step ──────────────────────────────────────────────────────
-function Step({ number, title, body, delay }) {
-  return (
-    <Reveal delay={delay}>
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-        <div style={{ width: 44, height: 44, borderRadius: "50%", background: `linear-gradient(135deg, ${SAGE}, ${FOREST})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: WHITE, fontFamily: "'Fraunces', serif", flexShrink: 0 }}>{number}</div>
-        <div style={{ paddingTop: 4 }}>
-          <h3 style={{ margin: "0 0 6px", fontSize: 17, fontWeight: 700, color: INK, fontFamily: "'Fraunces', serif" }}>{title}</h3>
-          <p style={{ margin: 0, fontSize: 14, color: INK3, fontFamily: "'Lato', sans-serif", lineHeight: 1.7 }}>{body}</p>
-        </div>
-      </div>
-    </Reveal>
-  );
-}
-
-// ── Stat ───────────────────────────────────────────────────────────────────
-function Stat({ value, label, delay }) {
-  return (
-    <Reveal delay={delay}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 42, fontWeight: 800, color: MINT, fontFamily: "'Fraunces', serif", lineHeight: 1, marginBottom: 6 }}>{value}</div>
-        <div style={{ fontSize: 14, color: "rgba(255,255,255,0.55)", fontFamily: "'Lato', sans-serif", lineHeight: 1.5, maxWidth: 160, margin: "0 auto" }}>{label}</div>
-      </div>
-    </Reveal>
-  );
-}
-
-// ── Main ───────────────────────────────────────────────────────────────────
-export default function ReadilyLandingPage() {
+// ─── MAIN ─────────────────────────────────────────────────────────────────
+export default function ReadilyLanding({ onLogin, onSignUp }) {
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 40);
+    const fn = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
+  const scrollTo = id => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,400;1,9..144,600&family=Lato:wght@300;400;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
-        body { background: ${CREAM}; color: ${INK}; }
-        ::selection { background: ${MINT}; color: ${FOREST}; }
-        ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: ${CREAM}; } ::-webkit-scrollbar-thumb { background: ${WARM2}; border-radius: 3px; }
-        input:focus { outline: none; border-color: ${SAGE} !important; box-shadow: 0 0 0 3px ${SAGE}18 !important; }
-        @keyframes heroFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(0.96)} }
-        @keyframes gradientShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+        body { background: ${C.bg}; font-family: 'Outfit', sans-serif; -webkit-font-smoothing: antialiased; }
+        input, button, select, textarea { font-family: 'Outfit', sans-serif; }
+        input:focus { outline: none; }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        .float { animation: float 4s ease-in-out infinite; }
+        a { text-decoration: none; color: inherit; }
+        @media(max-width:640px) {
+          input, select, textarea { font-size: 16px !important; }
+        }
       `}</style>
 
-      <div style={{ fontFamily: "'Lato', sans-serif", overflowX: "hidden" }}>
+      <div style={{ minHeight: "100vh", background: C.bg }}>
 
-        {/* ── NAV ── */}
-        <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, padding: "0 32px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", background: scrolled ? "rgba(253,246,236,0.92)" : "transparent", backdropFilter: scrolled ? "blur(12px)" : "none", borderBottom: scrolled ? `1px solid ${WARM2}` : "none", transition: "all 0.3s ease" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: `linear-gradient(135deg,${SAGE},${FOREST})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚡</div>
-            <span style={{ fontSize: 16, fontWeight: 800, color: INK, fontFamily: "'Fraunces', serif", letterSpacing: "-0.02em" }}>Readily</span>
+        {/* ── NAV ──────────────────────────────────────────────────────────── */}
+        <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, padding: "0 24px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between", background: scrolled ? "rgba(247,245,242,0.95)" : "transparent", backdropFilter: scrolled ? "blur(12px)" : "none", borderBottom: scrolled ? "1px solid rgba(0,0,0,0.06)" : "none", transition: "all 0.3s" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 30, height: 30, borderRadius: 8, background: C.tealD, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>⚡</div>
+            <span style={{ fontSize: 18, fontWeight: 800, color: C.ink, letterSpacing: "-0.02em" }}>Readily</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
-            <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-              {["Features", "How it works", "For providers"].map(l => (
-                <a key={l} href={`#${l.toLowerCase().replace(/ /g, "-")}`} style={{ fontSize: 13, fontWeight: 700, color: INK3, textDecoration: "none", letterSpacing: "0.01em", transition: "color 0.15s" }}
-                  onMouseEnter={e => e.target.style.color = SAGE}
-                  onMouseLeave={e => e.target.style.color = INK3}>{l}</a>
-              ))}
-            </div>
-            <a href="#waitlist" style={{ padding: "9px 18px", background: `linear-gradient(135deg,${SAGE},${FOREST})`, borderRadius: 8, color: WHITE, fontSize: 13, fontWeight: 700, textDecoration: "none", boxShadow: "0 2px 10px rgba(58,125,84,0.3)", transition: "transform 0.15s, box-shadow 0.15s" }}
-              onMouseEnter={e => { e.target.style.transform = "translateY(-1px)"; e.target.style.boxShadow = "0 4px 16px rgba(58,125,84,0.4)"; }}
-              onMouseLeave={e => { e.target.style.transform = "none"; e.target.style.boxShadow = "0 2px 10px rgba(58,125,84,0.3)"; }}>
-              Get early access
-            </a>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => scrollTo("waitlist")} style={{ display: "none", padding: "8px 18px", background: C.teal, border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }} className="nav-cta">Join waitlist</button>
+            <button onClick={onSignUp} style={{ padding: "8px 18px", background: C.teal, border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Sign up free</button>
+            <button onClick={onLogin} style={{ padding: "8px 18px", background: "transparent", border: `1.5px solid ${C.ink}22`, borderRadius: 8, color: C.ink2, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Log in →</button>
           </div>
         </nav>
 
-        {/* ── HERO ── */}
-        <section style={{ minHeight: "100vh", background: `linear-gradient(160deg, ${FOREST} 0%, ${FOREST2} 50%, ${MOSS} 100%)`, display: "flex", alignItems: "center", justifyContent: "center", padding: "100px 32px 80px", position: "relative", overflow: "hidden" }}>
+        {/* ── HERO ─────────────────────────────────────────────────────────── */}
+        <section style={{ padding: "120px 24px 80px", maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 60, alignItems: "center" }}>
 
-          {/* Background orbs */}
-          <div style={{ position: "absolute", top: "15%", right: "8%", width: 380, height: 380, borderRadius: "50%", background: `radial-gradient(circle, ${MINT}18 0%, transparent 70%)`, pointerEvents: "none" }} />
-          <div style={{ position: "absolute", bottom: "10%", left: "5%", width: 260, height: 260, borderRadius: "50%", background: `radial-gradient(circle, ${GOLD}12 0%, transparent 70%)`, pointerEvents: "none" }} />
-          <div style={{ position: "absolute", top: "40%", left: "20%", width: 180, height: 180, borderRadius: "50%", background: `radial-gradient(circle, ${SAGE}14 0%, transparent 70%)`, pointerEvents: "none" }} />
+            {/* Left copy */}
+            <div style={{ animation: "fadeUp 0.7s ease both" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 12px", background: C.teal+"14", border: `1px solid ${C.teal}30`, borderRadius: 20, marginBottom: 22 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.teal, display: "inline-block", animation: "pulse 2s ease infinite" }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.teal, letterSpacing: "0.05em" }}>Now accepting beta families</span>
+              </div>
 
-          {/* Noise texture */}
-          <div style={{ position: "absolute", inset: 0, backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E\")", backgroundRepeat: "repeat", backgroundSize: "200px", opacity: 0.4, pointerEvents: "none" }} />
+              <h1 style={{ fontSize: "clamp(32px,5vw,54px)", fontWeight: 900, color: C.ink, lineHeight: 1.1, marginBottom: 20, letterSpacing: "-0.03em" }}>
+                Stop re-explaining<br />
+                your child to<br />
+                <span style={{ color: C.teal, position: "relative" }}>
+                  every provider.
+                  <svg style={{ position: "absolute", bottom: -4, left: 0, width: "100%", height: 6, overflow: "visible" }} viewBox="0 0 200 6" preserveAspectRatio="none">
+                    <path d="M0,5 Q50,0 100,4 Q150,8 200,3" stroke={C.teal} strokeWidth="2.5" fill="none" opacity="0.5" />
+                  </svg>
+                </span>
+              </h1>
 
-          <div style={{ maxWidth: 900, width: "100%", textAlign: "center", position: "relative" }}>
+              <p style={{ fontSize: "clamp(15px,2vw,18px)", color: C.ink3, lineHeight: 1.7, marginBottom: 32, maxWidth: 480 }}>
+                Readily connects your child's therapists, teachers, and caregivers — so they always have what they need, and you never have to be the relay again.
+              </p>
 
-            {/* Badge */}
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 16px", background: "rgba(109,191,140,0.12)", border: "1px solid rgba(109,191,140,0.25)", borderRadius: 30, marginBottom: 28, animation: "pulse 3s ease infinite" }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: MINT, display: "inline-block" }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: MINT, fontFamily: "'Lato', sans-serif", letterSpacing: "0.08em" }}>NOW ACCEPTING EARLY FAMILIES</span>
+              <WaitlistForm size="large" />
+
+              <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 28, flexWrap: "wrap" }}>
+                {[["⚡","Free during beta"],["🔒","Your data, your control"],["⏱","12 min to set up"]].map(([icon, text]) => (
+                  <div key={text} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 13 }}>{icon}</span>
+                    <span style={{ fontSize: 12, color: C.ink3, fontWeight: 500 }}>{text}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Headline */}
-            <h1 style={{ fontSize: "clamp(38px, 7vw, 72px)", fontWeight: 800, color: WHITE, fontFamily: "'Fraunces', serif", lineHeight: 1.08, letterSpacing: "-0.03em", marginBottom: 24 }}>
-              Your child's whole care team,<br />
-              <span style={{ color: GOLD_L, fontStyle: "italic" }}>finally on the same page.</span>
-            </h1>
-
-            {/* Subheadline */}
-            <p style={{ fontSize: "clamp(16px, 2.2vw, 20px)", color: "rgba(255,255,255,0.65)", fontFamily: "'Lato', sans-serif", lineHeight: 1.7, maxWidth: 620, margin: "0 auto 40px", fontWeight: 300 }}>
-              Readily connects parents of children with ASD to their therapists, teachers, and care team — so nothing gets lost, nothing gets repeated, and families can breathe again.
-            </p>
-
-            {/* CTA */}
-            <div style={{ maxWidth: 500, margin: "0 auto 48px" }}>
-              <WaitlistForm dark />
+            {/* Right — floating mock */}
+            <div style={{ animation: "fadeUp 0.7s ease 150ms both", position: "relative" }}>
+              <div className="float" style={{ animationDelay: "0s" }}>
+                <DigestMock />
+              </div>
+              <div style={{ position: "absolute", bottom: -20, right: -10, width: 160, animation: "float 4s ease-in-out infinite", animationDelay: "0.5s" }}>
+                <div style={{ background: C.nav, borderRadius: 12, padding: "10px 14px", boxShadow: "0 8px 24px rgba(12,26,46,0.3)" }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: "#5eead4", fontFamily: "'Outfit',sans-serif", marginBottom:5 }}>FROM SARAH (SPEECH)</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", fontFamily: "'Outfit',sans-serif", lineHeight: 1.4 }}>Maya used 'I want' unprompted — a big first 🌟</div>
+                </div>
+              </div>
             </div>
+          </div>
+        </section>
 
-            {/* Social proof */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 24, flexWrap: "wrap" }}>
-              {["👩‍👧 Built with real ASD families", "🔒 Your data, your control", "✨ AI that actually helps"].map((t, i) => (
-                <div key={i} style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", fontFamily: "'Lato', sans-serif", display: "flex", alignItems: "center", gap: 5 }}>{t}</div>
+        {/* ── PAIN ─────────────────────────────────────────────────────────── */}
+        <section style={{ background: C.white, padding: "80px 24px", borderTop: "1px solid #e8e4de" }}>
+          <div style={{ maxWidth: 900, margin: "0 auto" }}>
+            <Reveal>
+              <div style={{ textAlign: "center", marginBottom: 44 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: C.rose, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>THE PROBLEM</div>
+                <h2 style={{ fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 900, color: C.ink, lineHeight: 1.2, letterSpacing: "-0.02em" }}>
+                  ASD families are buried in<br />coordination work nobody asked for.
+                </h2>
+              </div>
+            </Reveal>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 10 }}>
+              {[
+                ["😮‍💨", "You re-explain your child's triggers, motivators, and history at every new intake, school meeting, and provider handoff."],
+                ["📱", "You're the human relay between 3–7 providers who never talk to each other — texting updates, forwarding notes, making calls."],
+                ["💸", "You have no idea what you're actually spending on therapy until the end of the year — across deductibles, copays, and out-of-network."],
+                ["📋", "Session notes live in binders, email threads, or in providers' systems — never in one place where you can see the full picture."],
+              ].map(([emoji, text], i) => (
+                <PainCard key={i} emoji={emoji} text={text} delay={i * 80} />
               ))}
             </div>
           </div>
         </section>
 
-        {/* ── THE PROBLEM ── */}
-        <section style={{ background: CREAM, padding: "96px 32px" }}>
-          <div style={{ maxWidth: 780, margin: "0 auto" }}>
+        {/* ── FEATURES ─────────────────────────────────────────────────────── */}
+        <section style={{ padding: "100px 24px", maxWidth: 1000, margin: "0 auto" }}>
+          <Reveal>
+            <div style={{ textAlign: "center", marginBottom: 72 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: C.teal, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>THE SOLUTION</div>
+              <h2 style={{ fontSize: "clamp(24px,3.5vw,40px)", fontWeight: 900, color: C.ink, lineHeight: 1.2, letterSpacing: "-0.02em" }}>
+                Everything your care team needs.<br />Built around your child.
+              </h2>
+            </div>
+          </Reveal>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 80 }}>
+
+            <FeatureRow
+              number={1} label="Care Passport" flip={false} delay={0}
+              title="Build your child's profile once. Share it forever."
+              body="The Care Passport captures everything about your child — motivators, triggers, calming strategies, communication style, sensory profile. Send one link to any new teacher, therapist, or babysitter. They arrive informed. You stop repeating yourself."
+              visual={<PassportMock />}
+            />
+
+            <FeatureRow
+              number={2} label="Weekly Digest" flip={true} delay={0}
+              title="One summary of your child's whole week."
+              body="Every session your providers log becomes part of an AI-generated weekly digest. Patterns across therapists. Wins to celebrate. Tips to try at home. One place, every Monday morning — instead of piecing it together from 6 different sources."
+              visual={<DigestMock />}
+            />
+
+            <FeatureRow
+              number={3} label="Cost Planner" flip={false} delay={0}
+              title="Know your numbers before you're blindsided."
+              body="ASD therapy costs are real and they add up. The Cost Planner maps every therapy — frequency, cost per session, insurance coverage — into one annual view. Walk into any insurance or IEP conversation knowing exactly what you're spending and what's covered."
+              visual={<CostMock />}
+            />
+
+          </div>
+        </section>
+
+        {/* ── STATS ────────────────────────────────────────────────────────── */}
+        <section style={{ background: C.nav, padding: "80px 24px" }}>
+          <div style={{ maxWidth: 800, margin: "0 auto" }}>
             <Reveal>
-              <div style={{ textAlign: "center", marginBottom: 56 }}>
-                <div style={{ fontSize: 11, fontWeight: 900, color: SAGE, letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "'Lato', sans-serif", marginBottom: 12 }}>THE REALITY</div>
-                <h2 style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, color: INK, fontFamily: "'Fraunces', serif", lineHeight: 1.15, marginBottom: 16 }}>Caring for a child with ASD<br />is a second full-time job.</h2>
-                <p style={{ fontSize: 17, color: INK3, fontFamily: "'Lato', sans-serif", lineHeight: 1.75, maxWidth: 560, margin: "0 auto" }}>Most families juggle 3–7 providers who never talk to each other. The parent becomes the relay — repeating history at every appointment, chasing notes, translating between a speech therapist and a special ed teacher who've never met.</p>
+              <div style={{ textAlign: "center", marginBottom: 48 }}>
+                <h2 style={{ fontSize: "clamp(22px,3vw,34px)", fontWeight: 900, color: "#fff", lineHeight: 1.3, letterSpacing: "-0.02em" }}>
+                  The coordination burden is real.<br />
+                  <span style={{ color: "#5eead4" }}>So is the relief when it's gone.</span>
+                </h2>
               </div>
             </Reveal>
-
-            {/* Pain points */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 32 }}>
               {[
-                { stat: "4.2 hrs", label: "Average hours per week parents spend on care coordination", icon: "⏱" },
-                { stat: "6+",      label: "Providers the average ASD child sees — who rarely communicate", icon: "👥" },
-                { stat: "73%",     label: "Of families say burnout is their #1 challenge — not the diagnosis", icon: "💔" },
-                { stat: "0",       label: "Unified tools designed specifically for this problem. Until now.", icon: "🌱" },
-              ].map((s, i) => (
+                ["3–7", "providers the average ASD family coordinates between"],
+                ["12 min", "to build a complete child profile that follows them everywhere"],
+                ["0", "phone calls needed to share your child's history with a new provider"],
+                ["1 place", "to see every session note, goal, and therapy cost"],
+              ].map(([val, label], i) => (
                 <Reveal key={i} delay={i * 80}>
-                  <div style={{ background: WHITE, borderRadius: 16, padding: "22px 20px", border: `1px solid ${WARM2}`, textAlign: "center" }}>
-                    <div style={{ fontSize: 26, marginBottom: 8 }}>{s.icon}</div>
-                    <div style={{ fontSize: 32, fontWeight: 800, color: SAGE, fontFamily: "'Fraunces', serif", marginBottom: 6 }}>{s.stat}</div>
-                    <div style={{ fontSize: 13, color: INK3, fontFamily: "'Lato', sans-serif", lineHeight: 1.5 }}>{s.label}</div>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: "clamp(32px,4vw,46px)", fontWeight: 900, color: "#5eead4", fontFamily: "'Outfit',sans-serif", lineHeight: 1, marginBottom: 8 }}>{val}</div>
+                    <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", fontFamily: "'Outfit',sans-serif", lineHeight: 1.5 }}>{label}</div>
                   </div>
                 </Reveal>
               ))}
@@ -267,178 +427,96 @@ export default function ReadilyLandingPage() {
           </div>
         </section>
 
-        {/* ── FEATURES ── */}
-        <section id="features" style={{ background: WARM, padding: "96px 32px" }}>
-          <div style={{ maxWidth: 1040, margin: "0 auto" }}>
+        {/* ── TESTIMONIALS ─────────────────────────────────────────────────── */}
+        <section style={{ padding: "100px 24px", background: C.bg }}>
+          <div style={{ maxWidth: 960, margin: "0 auto" }}>
+            <Reveal>
+              <div style={{ textAlign: "center", marginBottom: 52 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: C.teal, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>EARLY FEEDBACK</div>
+                <h2 style={{ fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 900, color: C.ink, lineHeight: 1.2, letterSpacing: "-0.02em" }}>Parents and providers get it immediately.</h2>
+              </div>
+            </Reveal>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 16 }}>
+              <Quote delay={0} color={C.teal} name="Priya M." role="Mom of a 6-year-old, ASD Level 2"
+                text="I used to spend Sunday nights emailing four different providers to piece together how my son's week went. Now it just arrives. I cried the first time I saw the digest." />
+              <Quote delay={100} color={C.indigo} name="David K." role="Dad and part-time caregiver"
+                text="The child profile alone was worth it. I sent the link to his new school's resource teacher and she said she'd never had a parent share something so complete." />
+              <Quote delay={200} color={C.gold} name="Sarah T." role="Speech Therapist, 8 years"
+                text="I log sessions in under 2 minutes and the family sees my notes the same day. It's changed how connected I feel to the kids I work with — and to their families." />
+            </div>
+          </div>
+        </section>
+
+        {/* ── HOW IT WORKS ─────────────────────────────────────────────────── */}
+        <section style={{ padding: "100px 24px", background: C.white, borderTop: "1px solid #e8e4de" }}>
+          <div style={{ maxWidth: 640, margin: "0 auto" }}>
             <Reveal>
               <div style={{ textAlign: "center", marginBottom: 56 }}>
-                <div style={{ fontSize: 11, fontWeight: 900, color: SAGE, letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "'Lato', sans-serif", marginBottom: 12 }}>WHAT CAREPASSPORT DOES</div>
-                <h2 style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, color: INK, fontFamily: "'Fraunces', serif", lineHeight: 1.15 }}>One place that knows your child.<br />So everyone who cares for them can do their job better.</h2>
+                <div style={{ fontSize: 11, fontWeight: 800, color: C.teal, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>HOW IT WORKS</div>
+                <h2 style={{ fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 900, color: C.ink, lineHeight: 1.2, letterSpacing: "-0.02em" }}>Up and running in under 15 minutes.</h2>
               </div>
             </Reveal>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-              <FeatureCard delay={0}   icon="🪪" accent={SAGE}  title="Child Profile" body="Build a living profile of your child — what works, what doesn't, sensory needs, communication style. Share it instantly with any new provider. No more repeating yourself." />
-              <FeatureCard delay={80}  icon="📬" accent={GOLD}  title="Weekly Digest" body="Every Friday, an AI-generated summary of your child's week arrives in your inbox — synthesised from all provider sessions. You didn't have to do a thing." />
-              <FeatureCard delay={160} icon="📁" accent="#7c3aed" title="Docs & Goals Hub" body="Upload IEPs and ABA plans. Write your family goals in plain language. Get an AI progress report that cross-references all of it against what's actually happening." />
-              <FeatureCard delay={0}   icon="💰" accent={ROSE}  title="Cost Planner" body="Therapy-by-therapy financial planning. See exactly what your insurance covers, what you're paying out of pocket, and what the year ahead will cost." />
-              <FeatureCard delay={80}  icon="🩺" accent="#0891b2" title="Provider Portal" body="Therapists and teachers log sessions in under 2 minutes. Their notes flow directly to the family digest — no emails, no calls, no coordination overhead." />
-              <FeatureCard delay={160} icon="💬" accent={MINT}  title="Ask Anything" body="A chat assistant that knows your child's entire file. Ask about progress, get home strategies, or find out what a therapist said last Tuesday — instantly." />
-            </div>
-          </div>
-        </section>
-
-        {/* ── HOW IT WORKS ── */}
-        <section id="how-it-works" style={{ background: CREAM, padding: "96px 32px" }}>
-          <div style={{ maxWidth: 820, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}>
-            <div>
-              <Reveal>
-                <div style={{ fontSize: 11, fontWeight: 900, color: SAGE, letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "'Lato', sans-serif", marginBottom: 12 }}>HOW IT WORKS</div>
-                <h2 style={{ fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 800, color: INK, fontFamily: "'Fraunces', serif", lineHeight: 1.2, marginBottom: 40 }}>Set it up once.<br />It runs quietly after that.</h2>
-              </Reveal>
-              <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-                <Step number="1" delay={0}   title="Build your child's Passport" body="A guided 12-minute setup. Your child's profile, care team, and preferences — all in one place. You own it." />
-                <Step number="2" delay={100} title="Invite your care team" body="Send a link to your therapists and teachers. They log sessions in under 2 minutes — no new accounts, no friction." />
-                <Step number="3" delay={200} title="Let it run" body="Weekly digests arrive automatically. Progress reports generate on demand. The AI answers questions anytime. You just live your life." />
-              </div>
-            </div>
-
-            {/* Visual card stack */}
-            <Reveal delay={200}>
-              <div style={{ position: "relative", height: 380 }}>
-                {/* Cards stacked */}
-                <div style={{ position: "absolute", top: 40, left: 20, right: 0, background: WHITE, borderRadius: 18, padding: "20px 22px", border: `1px solid ${WARM2}`, boxShadow: "0 2px 16px rgba(26,18,10,0.08)", transform: "rotate(-3deg)" }}>
-                  <div style={{ fontSize: 10, fontWeight: 900, color: SAGE, letterSpacing: "0.1em", fontFamily: "'Lato', sans-serif", marginBottom: 8 }}>WEEKLY DIGEST · APR 11</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: INK, fontFamily: "'Fraunces', serif", marginBottom: 6 }}>A breakthrough week for Maya 🌟</div>
-                  <div style={{ fontSize: 12, color: INK3, fontFamily: "'Lato', sans-serif", lineHeight: 1.6 }}>3 providers logged this week. Speech therapy showed remarkable progress with unprompted 3-word phrases...</div>
-                </div>
-                <div style={{ position: "absolute", top: 20, left: 0, right: 20, background: WHITE, borderRadius: 18, padding: "20px 22px", border: `1px solid ${WARM2}`, boxShadow: "0 4px 24px rgba(26,18,10,0.1)", transform: "rotate(1.5deg)" }}>
-                  <div style={{ fontSize: 10, fontWeight: 900, color: "#7c3aed", letterSpacing: "0.1em", fontFamily: "'Lato', sans-serif", marginBottom: 8 }}>AI PROGRESS REPORT</div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: INK, fontFamily: "'Fraunces', serif", marginBottom: 12 }}>IEP Goal #2: Making Progress ↗</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                    {[["On Track", "#16a34a", "#dcfce7"], ["Making Progress", "#0891b2", "#ccfbf1"], ["Needs Attention", "#d97706", "#fef3c7"]].map(([lbl, c, bg]) => (
-                      <div key={lbl} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", background: bg, borderRadius: 6 }}>
-                        <div style={{ width: 7, height: 7, borderRadius: "50%", background: c }} />
-                        <span style={{ fontSize: 12, fontWeight: 600, color: c, fontFamily: "'Lato', sans-serif" }}>{lbl}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {/* Floating chat bubble */}
-                <div style={{ position: "absolute", bottom: 0, right: 0, background: `linear-gradient(135deg,${SAGE},${FOREST})`, borderRadius: "16px 16px 4px 16px", padding: "12px 16px", maxWidth: 200, boxShadow: "0 4px 20px rgba(58,125,84,0.3)", animation: "heroFloat 4s ease infinite" }}>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", fontFamily: "'Lato', sans-serif", marginBottom: 4 }}>💬 Ask anything</div>
-                  <div style={{ fontSize: 13, color: WHITE, fontFamily: "'Lato', sans-serif", lineHeight: 1.5, fontStyle: "italic" }}>"What did her ABA therapist say about transitions this week?"</div>
-                </div>
-              </div>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* ── STATS ── */}
-        <section style={{ background: `linear-gradient(135deg, ${FOREST} 0%, ${MOSS} 100%)`, padding: "80px 32px", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", inset: 0, backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E\")", pointerEvents: "none" }} />
-          <div style={{ maxWidth: 800, margin: "0 auto" }}>
-            <Reveal>
-              <div style={{ textAlign: "center", marginBottom: 52 }}>
-                <h2 style={{ fontSize: "clamp(24px, 3.5vw, 36px)", fontWeight: 800, color: WHITE, fontFamily: "'Fraunces', serif", lineHeight: 1.2 }}>What families get back<br /><span style={{ color: GOLD_L, fontStyle: "italic" }}>when the coordination is handled.</span></h2>
-              </div>
-            </Reveal>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 32 }}>
-              <Stat delay={0}   value="4+ hrs" label="saved per week on coordination tasks" />
-              <Stat delay={100} value="~12 min" label="to build a complete child profile" />
-              <Stat delay={200} value="2 min"   label="for a provider to log a full session" />
-              <Stat delay={300} value="0"       label="additional tasks added to the parent's day" />
-            </div>
-          </div>
-        </section>
-
-        {/* ── TESTIMONIALS ── */}
-        <section style={{ background: CREAM, padding: "96px 32px" }}>
-          <div style={{ maxWidth: 900, margin: "0 auto" }}>
-            <Reveal>
-              <div style={{ textAlign: "center", marginBottom: 52 }}>
-                <div style={{ fontSize: 11, fontWeight: 900, color: SAGE, letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "'Lato', sans-serif", marginBottom: 12 }}>FROM FAMILIES LIKE YOURS</div>
-                <h2 style={{ fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 800, color: INK, fontFamily: "'Fraunces', serif", lineHeight: 1.2 }}>Real words from real parents.</h2>
-              </div>
-            </Reveal>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
-              <Testimonial delay={0} avatar="#d1fae5" name="Priya M." role="Mom of a 6-year-old with ASD Level 2" quote="I used to spend my Sunday nights emailing four different providers to piece together how my son's week went. Now it just arrives. I cried the first time I saw the digest." />
-              <Testimonial delay={100} avatar="#e0e7ff" name="David K." role="Dad and part-time caregiver" quote="The child profile alone was worth it. I sent the link to his new school's resource teacher and she said she'd never had a parent share something so complete." />
-              <Testimonial delay={200} avatar="#fef3c7" name="Sarah T." role="Speech Therapist, 8 years" quote="I log sessions in under 2 minutes now. The family sees my notes the same day. It's changed how connected I feel to the kids I work with — and to their families." />
-            </div>
-          </div>
-        </section>
-
-        {/* ── FOR PROVIDERS ── */}
-        <section id="for-providers" style={{ background: WARM, padding: "96px 32px" }}>
-          <div style={{ maxWidth: 820, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 56, alignItems: "center" }}>
-            <Reveal>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 900, color: SAGE, letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "'Lato', sans-serif", marginBottom: 12 }}>FOR PROVIDERS</div>
-                <h2 style={{ fontSize: "clamp(24px, 3.2vw, 36px)", fontWeight: 800, color: INK, fontFamily: "'Fraunces', serif", lineHeight: 1.2, marginBottom: 16 }}>Your work finally reaches the people who need it most.</h2>
-                <p style={{ fontSize: 15, color: INK3, fontFamily: "'Lato', sans-serif", lineHeight: 1.75, marginBottom: 28 }}>Therapists and teachers spend hours on communication overhead. Readily makes it effortless — log a session in 2 minutes, and your insights go directly to the family digest and the whole care team.</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {["No new app to learn — link-based access", "Session log takes under 2 minutes", "See the child's full Passport before every session", "Your notes reach the family automatically", "Permissions controlled by the family"].map((t, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 20, height: 20, borderRadius: "50%", background: SAGE + "22", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <span style={{ fontSize: 10, color: SAGE }}>✓</span>
-                      </div>
-                      <span style={{ fontSize: 14, color: INK2, fontFamily: "'Lato', sans-serif" }}>{t}</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+              {[
+                ["🪪", "Build your child's profile", "Take 12 minutes to capture who your child is — what helps them, what's hard, how they communicate. You'll never have to explain it again."],
+                ["🩺", "Invite your care team", "Add your providers by email. They get a simple link — no app download, no new login. They log sessions in 2 minutes."],
+                ["📬", "Get your weekly digest", "Every Friday, Readily synthesizes the week across all providers into one warm, readable summary with patterns and home tips."],
+                ["💰", "Track your costs", "Add your therapies once. See your full annual out-of-pocket picture updated in real time."],
+              ].map(([icon, title, body], i) => (
+                <Reveal key={i} delay={i * 80}>
+                  <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
+                    <div style={{ width: 46, height: 46, borderRadius: 12, background: C.teal + "14", border: `1px solid ${C.teal}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{icon}</div>
+                    <div style={{ paddingTop: 2 }}>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: C.ink, marginBottom: 5 }}>{title}</div>
+                      <div style={{ fontSize: 14, color: C.ink3, lineHeight: 1.65 }}>{body}</div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </Reveal>
-            <Reveal delay={150}>
-              <div style={{ background: "#0c1a2e", borderRadius: 20, padding: "24px", boxShadow: "0 8px 32px rgba(12,26,46,0.2)" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#38bdf8", fontFamily: "'Lato', sans-serif", letterSpacing: "0.12em", marginBottom: 12 }}>PROVIDER SESSION LOG</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-                  {["Expressive language", "Pragmatics", "Transitions"].map(t => <span key={t} style={{ padding: "4px 10px", borderRadius: 20, background: "rgba(56,189,248,0.15)", color: "#38bdf8", fontSize: 11, fontWeight: 600, fontFamily: "'Lato', sans-serif" }}>{t}</span>)}
-                </div>
-                <div style={{ background: "#1e2535", borderRadius: 12, padding: "12px 14px", marginBottom: 10 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#4ade80", fontFamily: "'Lato', sans-serif", marginBottom: 5 }}>WIN TODAY</div>
-                  <div style={{ fontSize: 13, color: "#a8bdd0", fontFamily: "'Lato', sans-serif", lineHeight: 1.5 }}>Maya used 'I want' unprompted twice during play — a big first.</div>
-                </div>
-                <div style={{ background: "#1e2535", borderRadius: 12, padding: "12px 14px", marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#38bdf8", fontFamily: "'Lato', sans-serif", marginBottom: 5 }}>NOTE FOR FAMILY</div>
-                  <div style={{ fontSize: 13, color: "#a8bdd0", fontFamily: "'Lato', sans-serif", lineHeight: 1.5 }}>Try asking 'what do you want?' before meals — she's ready.</div>
-                </div>
-                <div style={{ background: `linear-gradient(135deg, #0ea5e9, #0284c7)`, borderRadius: 10, padding: "10px", textAlign: "center", fontSize: 13, fontWeight: 700, color: WHITE, fontFamily: "'Lato', sans-serif" }}>✓ Session logged · Family notified</div>
-              </div>
-            </Reveal>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* ── WAITLIST CTA ── */}
-        <section id="waitlist" style={{ background: `linear-gradient(160deg, ${FOREST} 0%, ${MOSS} 60%, ${SAGE} 100%)`, padding: "100px 32px", position: "relative", overflow: "hidden", textAlign: "center" }}>
-          <div style={{ position: "absolute", top: "20%", right: "10%", width: 300, height: 300, borderRadius: "50%", background: `radial-gradient(circle, ${MINT}14 0%, transparent 70%)`, pointerEvents: "none" }} />
-          <div style={{ position: "absolute", bottom: "15%", left: "8%", width: 200, height: 200, borderRadius: "50%", background: `radial-gradient(circle, ${GOLD}10 0%, transparent 70%)`, pointerEvents: "none" }} />
+        {/* ── FINAL CTA ────────────────────────────────────────────────────── */}
+        <section id="waitlist" style={{ padding: "100px 24px", background: `linear-gradient(160deg,${C.nav} 0%,#0f2942 60%,#163d5c 100%)`, position: "relative", overflow: "hidden" }}>
+          {/* decorative circles */}
+          <div style={{ position: "absolute", top: "-10%", right: "-5%", width: 400, height: 400, borderRadius: "50%", background: `radial-gradient(circle,${C.teal}18 0%,transparent 65%)`, pointerEvents: "none" }} />
+          <div style={{ position: "absolute", bottom: "-15%", left: "-5%", width: 300, height: 300, borderRadius: "50%", background: `radial-gradient(circle,${C.indigo}18 0%,transparent 65%)`, pointerEvents: "none" }} />
 
-          <div style={{ maxWidth: 580, margin: "0 auto", position: "relative" }}>
+          <div style={{ maxWidth: 580, margin: "0 auto", textAlign: "center", position: "relative" }}>
             <Reveal>
-              <div style={{ fontSize: 44, marginBottom: 16 }}>🌱</div>
-              <h2 style={{ fontSize: "clamp(28px, 4.5vw, 48px)", fontWeight: 800, color: WHITE, fontFamily: "'Fraunces', serif", lineHeight: 1.1, marginBottom: 16 }}>
-                Your child deserves a team<br /><span style={{ color: GOLD_L, fontStyle: "italic" }}>that actually works together.</span>
+              <div style={{ fontSize: 44, marginBottom: 16 }}>⚡</div>
+              <h2 style={{ fontSize: "clamp(28px,4.5vw,48px)", fontWeight: 900, color: "#fff", lineHeight: 1.1, marginBottom: 16, letterSpacing: "-0.03em" }}>
+                Your child deserves a team<br />
+                <span style={{ color: "#5eead4" }}>that actually works together.</span>
               </h2>
-              <p style={{ fontSize: 16, color: "rgba(255,255,255,0.6)", fontFamily: "'Lato', sans-serif", lineHeight: 1.7, marginBottom: 36 }}>
-                We're onboarding our first families now. Join the waitlist and we'll reach out personally to set up your child's Passport.
+              <p style={{ fontSize: 16, color: "rgba(255,255,255,0.55)", lineHeight: 1.7, marginBottom: 40 }}>
+                We're onboarding our first 50 beta families now — personally, one at a time. Join the waitlist and we'll set up your child's profile with you.
               </p>
-              <WaitlistForm dark />
+              <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "28px 24px", backdropFilter: "blur(8px)" }}>
+                <WaitlistForm dark size="large" />
+              </div>
+              <div style={{ marginTop: 24, fontSize: 12, color: "rgba(255,255,255,0.3)" }}>
+                Already have an account?{" "}
+                <button onClick={onLogin} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontWeight: 600, fontSize: 12, cursor: "pointer", padding: 0 }}>Log in →</button>
+              </div>
             </Reveal>
           </div>
         </section>
 
-        {/* ── FOOTER ── */}
-        <footer style={{ background: FOREST, padding: "40px 32px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 7, background: `linear-gradient(135deg,${SAGE},${FOREST2})`, border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>⚡</div>
-              <span style={{ fontSize: 14, fontWeight: 800, color: WHITE, fontFamily: "'Fraunces', serif" }}>Readily</span>
+        {/* ── FOOTER ───────────────────────────────────────────────────────── */}
+        <footer style={{ background: C.nav, padding: "32px 24px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 26, height: 26, borderRadius: 7, background: C.tealD, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⚡</div>
+              <span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Readily</span>
             </div>
-            <div style={{ display: "flex", gap: 24 }}>
-              {["Privacy", "Terms", "Contact"].map(l => <a key={l} href="#" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none", fontFamily: "'Lato', sans-serif", transition: "color 0.15s" }} onMouseEnter={e => e.target.style.color = "rgba(255,255,255,0.7)"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.35)"}>{l}</a>)}
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>© 2026 Readily · Built for families who deserve better.</div>
+            <div style={{ display: "flex", gap: 20 }}>
+              {["Privacy", "Terms", "Contact"].map(l => (
+                <a key={l} href="#" style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", transition: "color 0.15s" }} onMouseEnter={e => e.target.style.color = "rgba(255,255,255,0.7)"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.3)"}>{l}</a>
+              ))}
             </div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", fontFamily: "'Lato', sans-serif" }}>© 2026 Readily. Made with care.</div>
           </div>
         </footer>
 
