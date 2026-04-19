@@ -337,64 +337,87 @@ export default function ReadilyLanding({ onLogin, onSignUp }) {
           </div>
         </section>
 
-        {/* ── PAIN ─────────────────────────────────────────────────────────── */}
-        <section style={{ background: C.white, padding: "80px 24px", borderTop: "1px solid #e8e4de" }}>
+        {/* ── COMBINED PROBLEM + SOLUTION ──────────────────────────────────── */}
+        <section style={{ background: C.white, padding: "100px 24px", borderTop: "1px solid #e8e4de" }}>
           <div style={{ maxWidth: 900, margin: "0 auto" }}>
+
+            {/* Headline statement */}
             <Reveal>
-              <div style={{ textAlign: "center", marginBottom: 44 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: C.rose, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>THE PROBLEM</div>
-                <h2 style={{ fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 900, color: C.ink, lineHeight: 1.2, letterSpacing: "-0.02em" }}>
-                  ASD families are buried in<br />coordination work nobody asked for.
+              <div style={{ textAlign: "center", marginBottom: 64 }}>
+                <h2 style={{ fontSize: "clamp(22px,3.2vw,36px)", fontWeight: 900, color: C.ink, lineHeight: 1.35, letterSpacing: "-0.02em", maxWidth: 720, margin: "0 auto 16px" }}>
+                  Families of children with special needs carry the heavy burden of coordinating care across multiple providers, with critical information often fragmented or lost.
                 </h2>
+                <p style={{ fontSize: "clamp(16px,2vw,20px)", color: C.teal, fontWeight: 700, lineHeight: 1.5, maxWidth: 620, margin: "0 auto" }}>
+                  Readily brings clarity by keeping everything organized, connected, and secure in one place.
+                </p>
               </div>
             </Reveal>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 10 }}>
+
+            {/* Pain + solution pairs */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {[
-                ["😮‍💨", "You re-explain your child's triggers, motivators, and history at every new intake, school meeting, and provider handoff."],
-                ["📱", "You're the human relay between 3–7 providers who never talk to each other — texting updates, forwarding notes, making calls."],
-                ["💸", "You have no idea what you're actually spending on therapy until the end of the year — across deductibles, copays, and out-of-network."],
-                ["📋", "Session notes live in binders, email threads, or in providers' systems — never in one place where you can see the full picture."],
-              ].map(([emoji, text], i) => (
-                <PainCard key={i} emoji={emoji} text={text} delay={i * 80} />
+                {
+                  emoji: "😮‍💨",
+                  pain: "You re-explain your child's triggers, motivators, and history at every new intake, school meeting, and provider handoff.",
+                  solutionName: "Readily's Care Passport",
+                  solution: "captures everything once. Share it with any new provider, teacher, or caregiver — they arrive informed, every time.",
+                  color: C.teal,
+                  visual: <PassportMock />,
+                },
+                {
+                  emoji: "📱",
+                  pain: "You're the human relay between 3–7 providers who never talk to each other — texting updates, forwarding notes, making calls.",
+                  solutionName: "Readily's Provider Log",
+                  solution: "lets each provider share session notes directly with you — the parent. You see everything. Providers only see what you choose to share with them.",
+                  color: C.indigo,
+                  visual: <DigestMock />,
+                },
+                {
+                  emoji: "💸",
+                  pain: "You have no idea what you're actually spending on therapy until the end of the year — across deductibles, copays, and out-of-network.",
+                  solutionName: "Readily's Cost Planner",
+                  solution: "maps every therapy into one annual view. Know your numbers before you're blindsided.",
+                  color: C.gold,
+                  visual: <CostMock />,
+                },
+                {
+                  emoji: "📋",
+                  pain: "Session notes live in binders, email threads, or in providers' systems — never in one place where you can see the full picture.",
+                  solutionName: "Readily's Weekly Digest",
+                  solution: "pulls every session note into one readable summary for you, every week. One place, one picture.",
+                  color: "#7c3aed",
+                  visual: <DigestMock />,
+                },
+              ].map((item, i) => (
+                <Reveal key={i} delay={i * 80}>
+                  <div style={{ borderRadius: 16, border: "1px solid #e8e4de", overflow: "hidden", background: C.white }}>
+                    {/* Pain row */}
+                    <div style={{ display: "flex", gap: 14, alignItems: "flex-start", padding: "20px 24px", background: "#faf9f7", borderBottom: `1px solid #e8e4de` }}>
+                      <span style={{ fontSize: 22, flexShrink: 0, marginTop: 2 }}>{item.emoji}</span>
+                      <p style={{ margin: 0, fontSize: 15, color: C.ink2, fontFamily: "'Outfit',sans-serif", lineHeight: 1.6 }}>{item.pain}</p>
+                    </div>
+                    {/* Solution row */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 0, alignItems: "center" }}>
+                      <div style={{ padding: "20px 24px", borderRight: "1px solid #e8e4de" }}>
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                          <div style={{ width: 22, height: 22, borderRadius: "50%", background: item.color+"18", border: `1.5px solid ${item.color}44`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+                            <span style={{ fontSize: 11, color: item.color, fontWeight: 800 }}>✓</span>
+                          </div>
+                          <p style={{ margin: 0, fontSize: 14, color: C.ink2, fontFamily: "'Outfit',sans-serif", lineHeight: 1.65 }}>
+                            <strong style={{ color: item.color, fontWeight: 800 }}>{item.solutionName}</strong>{" "}{item.solution}
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{ padding: "16px 20px" }}>
+                        <div style={{ transform: "scale(0.85)", transformOrigin: "top left", maxHeight: 200, overflow: "hidden", borderRadius: 10 }}>
+                          {item.visual}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Reveal>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* ── FEATURES ─────────────────────────────────────────────────────── */}
-        <section style={{ padding: "100px 24px", maxWidth: 1000, margin: "0 auto" }}>
-          <Reveal>
-            <div style={{ textAlign: "center", marginBottom: 72 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: C.teal, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>THE SOLUTION</div>
-              <h2 style={{ fontSize: "clamp(24px,3.5vw,40px)", fontWeight: 900, color: C.ink, lineHeight: 1.2, letterSpacing: "-0.02em" }}>
-                Everything your care team needs.<br />Built around your child.
-              </h2>
-            </div>
-          </Reveal>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 80 }}>
-
-            <FeatureRow
-              number={1} label="Care Passport" flip={false} delay={0}
-              title="Build your child's profile once. Share it forever."
-              body="The Care Passport captures everything about your child — motivators, triggers, calming strategies, communication style, sensory profile. Send one link to any new teacher, therapist, or babysitter. They arrive informed. You stop repeating yourself."
-              visual={<PassportMock />}
-            />
-
-            <FeatureRow
-              number={2} label="Weekly Digest" flip={true} delay={0}
-              title="One summary of your child's whole week."
-              body="Every session your providers log becomes part of an AI-generated weekly digest. Patterns across therapists. Wins to celebrate. Tips to try at home. One place, every Monday morning — instead of piecing it together from 6 different sources."
-              visual={<DigestMock />}
-            />
-
-            <FeatureRow
-              number={3} label="Cost Planner" flip={false} delay={0}
-              title="Know your numbers before you're blindsided."
-              body="ASD therapy costs are real and they add up. The Cost Planner maps every therapy — frequency, cost per session, insurance coverage — into one annual view. Walk into any insurance or IEP conversation knowing exactly what you're spending and what's covered."
-              visual={<CostMock />}
-            />
-
           </div>
         </section>
 
@@ -458,7 +481,7 @@ export default function ReadilyLanding({ onLogin, onSignUp }) {
             </Reveal>
             <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
               {[
-                ["🪪", "Build your child's profile", "Take 12 minutes to capture who your child is — what helps them, what's hard, how they communicate. You'll never have to explain it again."],
+                ["🪪", "Build your child's profile", "Take less than 12 minutes to capture who your child is — what helps them, what's hard, how they communicate. You'll never have to explain it again."],
                 ["🩺", "Invite your care team", "Add your providers by email. They get a simple link — no app download, no new login. They log sessions in 2 minutes."],
                 ["📬", "Get your weekly digest", "Every Friday, Readily synthesizes the week across all providers into one warm, readable summary with patterns and home tips."],
                 ["💰", "Track your costs", "Add your therapies once. See your full annual out-of-pocket picture updated in real time."],
