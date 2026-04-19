@@ -4,6 +4,7 @@ import { supabase } from './supabase'
 import Auth from './Auth.jsx'
 import ReadilyApp from './readily-app.jsx'
 import ReadilyLanding from './readily-landing.jsx'
+import LegalPage from './LegalPage.jsx'
 
 const DEMO_EMAIL = 'ablepamhc@gmail.com'
 
@@ -23,11 +24,13 @@ function Root() {
   const [loading, setLoading]   = useState(true)
   const [hasChild, setHasChild] = useState(false)
   const [authMode, setAuthMode] = useState(null) // 'login' | 'signup' | null
+  const [showLegal, setShowLegal] = useState(false)
 
   // On mount — read URL param for auth mode
   useEffect(() => {
     const param = getParam('auth')
     if (param === 'login' || param === 'signup') setAuthMode(param)
+    if (param === 'legal') setShowLegal(true)
   }, [])
 
   // Listen for browser back/forward
@@ -35,6 +38,7 @@ function Root() {
     const fn = () => {
       const param = getParam('auth')
       setAuthMode(param === 'login' || param === 'signup' ? param : null)
+      setShowLegal(param === 'legal')
     }
     window.addEventListener('popstate', fn)
     return () => window.removeEventListener('popstate', fn)
@@ -88,6 +92,12 @@ function Root() {
   const goToLanding = () => {
     clearParams()
     setAuthMode(null)
+    setShowLegal(false)
+  }
+
+  const goToLegal = () => {
+    setParam('auth', 'legal')
+    setShowLegal(true)
   }
 
   // ── Loading spinner ──
@@ -110,8 +120,14 @@ function Root() {
         initialMode={authMode}
         onBack={goToLanding}
         onAuth={() => {}}
+        onLegal={goToLegal}
       />
     )
+  }
+
+  // ── Legal page ──
+  if (showLegal) {
+    return <LegalPage onBack={goToLanding} />
   }
 
   // ── Landing page (default) ──
@@ -119,6 +135,7 @@ function Root() {
     <ReadilyLanding
       onLogin={() => goToAuth('login')}
       onSignUp={() => goToAuth('signup')}
+      onLegal={goToLegal}
     />
   )
 }

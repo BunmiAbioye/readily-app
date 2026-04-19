@@ -239,7 +239,7 @@ function Quote({ text, name, role, color, delay }) {
 }
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────
-export default function ReadilyLanding({ onLogin, onSignUp }) {
+export default function ReadilyLanding({ onLogin, onSignUp, onLegal }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -533,9 +533,9 @@ export default function ReadilyLanding({ onLogin, onSignUp }) {
             </div>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>© 2026 Readily · Built for families who deserve better.</div>
             <div style={{ display: "flex", gap: 20 }}>
-              {["Privacy", "Terms", "Contact"].map(l => (
-                <a key={l} href="#" style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", transition: "color 0.15s" }} onMouseEnter={e => e.target.style.color = "rgba(255,255,255,0.7)"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.3)"}>{l}</a>
-              ))}
+              <button onClick={() => onLegal && onLegal()} style={{ background:"none", border:"none", fontSize:12, color:"rgba(255,255,255,0.35)", cursor:"pointer", fontFamily:"'Outfit',sans-serif" }} onMouseEnter={e=>e.target.style.color="rgba(255,255,255,0.8)"} onMouseLeave={e=>e.target.style.color="rgba(255,255,255,0.35)"}>Privacy Policy</button>
+              <button onClick={() => onLegal && onLegal()} style={{ background:"none", border:"none", fontSize:12, color:"rgba(255,255,255,0.35)", cursor:"pointer", fontFamily:"'Outfit',sans-serif" }} onMouseEnter={e=>e.target.style.color="rgba(255,255,255,0.8)"} onMouseLeave={e=>e.target.style.color="rgba(255,255,255,0.35)"}>Terms of Service</button>
+              <a href="mailto:contact@ablepam.ca" style={{ fontSize:12, color:"rgba(255,255,255,0.35)", textDecoration:"none", fontFamily:"'Outfit',sans-serif" }} onMouseEnter={e=>e.target.style.color="rgba(255,255,255,0.8)"} onMouseLeave={e=>e.target.style.color="rgba(255,255,255,0.35)"}>Contact</a>
             </div>
           </div>
         </footer>

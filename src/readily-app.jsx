@@ -130,6 +130,48 @@ const AI_ENDPOINT = "/api/chat";
 const apiHeaders = () => ({ "Content-Type": "application/json" });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PHI CONSENT MODAL — shown once before first profile save
+// ═══════════════════════════════════════════════════════════════════════════
+function PHIConsentModal({ childName, onConfirm, onCancel }) {
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:24, backdropFilter:"blur(4px)" }}>
+      <div style={{ background:T.white, borderRadius:20, padding:"32px 28px", maxWidth:480, width:"100%", boxShadow:"0 16px 48px rgba(0,0,0,0.2)" }}>
+        <div style={{ width:44, height:44, borderRadius:12, background:T.teal+"18", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, marginBottom:16 }}>🔒</div>
+        <h2 style={{ margin:"0 0 10px", fontSize:20, fontWeight:800, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>Before we save {childName ? `${childName}'s` : "your child's"} profile</h2>
+        <p style={{ margin:"0 0 20px", fontSize:13, color:T.ink3, fontFamily:"'DM Sans',sans-serif", lineHeight:1.65 }}>
+          You're about to save Personal Health Information (PHI) about your child. Please confirm you understand how it's protected:
+        </p>
+        <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:24 }}>
+          {[
+            ["🇨🇦", "Stored securely in Canada (Montreal) — never shared outside Canada without your consent"],
+            ["👤", "Only providers you personally invite will be able to see this information"],
+            ["🤖", "AI features will only process this data when you actively use the digest or chat"],
+            ["🗑️", "You can delete all your data at any time by emailing contact@ablepam.ca"],
+            ["⚕️", "This is a coordination tool — it does not replace professional medical advice"],
+          ].map(([icon, text], i) => (
+            <div key={i} style={{ display:"flex", gap:12, alignItems:"flex-start", padding:"10px 12px", background:T.surface, borderRadius:8 }}>
+              <span style={{ fontSize:16, flexShrink:0 }}>{icon}</span>
+              <span style={{ fontSize:12, color:T.ink2, fontFamily:"'DM Sans',sans-serif", lineHeight:1.55 }}>{text}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display:"flex", gap:10 }}>
+          <button onClick={onCancel} style={{ flex:1, padding:"11px", background:T.white, border:`1.5px solid ${T.border}`, borderRadius:10, color:T.ink3, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:14, cursor:"pointer" }}>
+            Cancel
+          </button>
+          <button onClick={onConfirm} style={{ flex:2, padding:"11px", background:`linear-gradient(135deg,${T.teal},${T.tealD})`, border:"none", borderRadius:10, color:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:14, cursor:"pointer", boxShadow:`0 4px 12px ${T.teal}44` }}>
+            I understand — save profile →
+          </button>
+        </div>
+        <p style={{ margin:"14px 0 0", fontSize:11, color:T.ink4, fontFamily:"'DM Sans',sans-serif", textAlign:"center", lineHeight:1.5 }}>
+          By confirming, you consent to the collection and use of this PHI as described in our Privacy Policy and Terms of Service.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // PASSPORT BUILDER
 // ═══════════════════════════════════════════════════════════════════════════
 const PASSPORT_STEPS = ["Child", "What Works", "Watch For", "Care Team", "Profile"];
@@ -162,6 +204,7 @@ function PassportBuilder({ session, child, onSaved }) {
   const [step, setStep] = useState(0);
   const [d, setD] = useState(getInitialData);
   const [saving, setSaving] = useState(false);
+  const [showPHIConsent, setShowPHIConsent] = useState(false);
   const [team, setTeam] = useState([]);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("Speech Therapist");
@@ -189,6 +232,12 @@ function PassportBuilder({ session, child, onSaved }) {
   const handleSave = async () => {
     if (!d.name.trim()) { alert("Please enter your child's name."); return; }
     if (isDemo) { alert("This is a demo account — changes won't be saved."); return; }
+    // Show PHI consent modal before first-time profile save
+    if (!child?.id) { setShowPHIConsent(true); return; }
+    await doSave();
+  };
+
+  const doSave = async () => {
     setSaving(true);
     const payload = { family_id:session.user.id, name:d.name, age:parseInt(d.age)||null, school:d.school, diagnosis:d.diagnosis, motivators:d.motivators, calming:d.calming, communication:d.comm, triggers:d.triggers, sensory:d.sensory, notes:d.notes };
     let childId = child?.id;
@@ -301,6 +350,7 @@ function PassportBuilder({ session, child, onSaved }) {
 
   return (
     <div style={{ maxWidth:560, margin:"0 auto", width:"100%" }}>
+      {showPHIConsent && <PHIConsentModal childName={d.name} onConfirm={async()=>{ setShowPHIConsent(false); await doSave(); }} onCancel={()=>setShowPHIConsent(false)} />}
       <div style={{ marginBottom:20 }}>
         <div style={{ display:"flex", gap:6, marginBottom:16 }}>
           {PASSPORT_STEPS.map((s,i)=><div key={s} style={{ height:4, flex:1, borderRadius:2, background:i<=step?T.teal:T.border, transition:"background 0.3s" }} />)}

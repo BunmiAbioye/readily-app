@@ -14,7 +14,7 @@ const T = {
   rose:   "#e11d48",
 }
 
-export default function Auth({ initialMode = 'login', onBack, onAuth }) {
+export default function Auth({ initialMode = 'login', onBack, onAuth, onLegal }) {
   const [mode, setMode]         = useState(initialMode)
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -22,6 +22,8 @@ export default function Auth({ initialMode = 'login', onBack, onAuth }) {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const [done, setDone]         = useState(false)
+  const [consent, setConsent]   = useState(false)
+  const [consent2, setConsent2] = useState(false)
 
   const inp = {
     width: '100%', padding: '12px 14px', borderRadius: 10,
@@ -33,6 +35,8 @@ export default function Auth({ initialMode = 'login', onBack, onAuth }) {
     setError('')
     if (!email.trim() || !password.trim()) { setError('Please fill in all fields.'); return }
     if (mode === 'signup' && !name.trim()) { setError('Please enter your name.'); return }
+    if (mode === 'signup' && !consent) { setError('Please confirm you are the parent or legal guardian to continue.'); return }
+    if (mode === 'signup' && !consent2) { setError('Please agree to the Privacy Policy and Terms of Service to continue.'); return }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
     setLoading(true)
     try {
@@ -59,7 +63,7 @@ export default function Auth({ initialMode = 'login', onBack, onAuth }) {
     } finally { setLoading(false) }
   }
 
-  const switchMode = (m) => { setMode(m); setError(''); setEmail(''); setPassword(''); setName('') }
+  const switchMode = (m) => { setMode(m); setError(''); setEmail(''); setPassword(''); setName(''); setConsent(false); setConsent2(false) }
 
   if (done) return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#0c1a2e,#1e3a5f)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
@@ -148,6 +152,43 @@ export default function Auth({ initialMode = 'login', onBack, onAuth }) {
           {error && (
             <div style={{ marginTop: 12, padding: '10px 12px', background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 8, fontSize: 13, color: T.rose, lineHeight: 1.4 }}>
               {error}
+            </div>
+          )}
+
+          {mode === 'signup' && (
+            <div style={{ display:'flex', flexDirection:'column', gap:10, padding:'14px', background:'#f6f8fb', borderRadius:10, border:'1px solid #e2e8f2' }}>
+              <div style={{ fontSize:11, fontWeight:700, color:'#64748b', fontFamily:"'DM Sans',sans-serif", letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:2 }}>Required consents</div>
+
+              {/* Consent 1 — Guardian confirmation */}
+              <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
+                <input
+                  type="checkbox"
+                  id="consent1"
+                  checked={consent}
+                  onChange={e => { setConsent(e.target.checked); setError('') }}
+                  style={{ marginTop:2, flexShrink:0, accentColor:'#0d9488', width:15, height:15, cursor:'pointer' }}
+                />
+                <label htmlFor="consent1" style={{ fontSize:12, color:'#334155', fontFamily:"'DM Sans',sans-serif", lineHeight:1.55, cursor:'pointer' }}>
+                  I am the <strong>parent or legal guardian</strong> of the child whose health information I will enter into Readily, and I have the authority to consent on their behalf.
+                </label>
+              </div>
+
+              {/* Consent 2 — PHI collection and use */}
+              <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
+                <input
+                  type="checkbox"
+                  id="consent2"
+                  checked={consent2}
+                  onChange={e => { setConsent2(e.target.checked); setError('') }}
+                  style={{ marginTop:2, flexShrink:0, accentColor:'#0d9488', width:15, height:15, cursor:'pointer' }}
+                />
+                <label htmlFor="consent2" style={{ fontSize:12, color:'#334155', fontFamily:"'DM Sans',sans-serif", lineHeight:1.55, cursor:'pointer' }}>
+                  I understand that the information I enter will be used to coordinate my child's care, shared only with providers I invite, and processed by AI only when I activate digest or chat features. I can delete my data at any time. I have read and agree to the{' '}
+                  <button type="button" onClick={() => onLegal && onLegal()} style={{ background:'none', border:'none', color:'#0d9488', fontWeight:700, fontSize:12, cursor:'pointer', padding:0, fontFamily:"'DM Sans',sans-serif" }}>Privacy Policy</button>
+                  {' '}and{' '}
+                  <button type="button" onClick={() => onLegal && onLegal()} style={{ background:'none', border:'none', color:'#0d9488', fontWeight:700, fontSize:12, cursor:'pointer', padding:0, fontFamily:"'DM Sans',sans-serif" }}>Terms of Service</button>.
+                </label>
+              </div>
             </div>
           )}
 
