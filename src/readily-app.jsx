@@ -49,7 +49,7 @@ const T = {
 // ═══════════════════════════════════════════════════════════════════════════
 // DEMO DATA — only used for the demo account
 // ═══════════════════════════════════════════════════════════════════════════
-const DEMO_EMAIL = "bunmioluwa@gmail.com";
+const DEMO_EMAIL = "ablepamhc@gmail.com";
 
 const DEMO_CHILD = { name: "Maya", age: 7, diagnosis: "ASD Level 2", school: "Sunridge Elementary", motivators:["Dinosaurs","Drawing","Music"], calming:["Verbal warnings","Deep pressure"], communication:["Verbal","Picture cards"], triggers:["Loud sounds","Unexpected changes","Transitions"], sensory:["Seeks deep pressure","Avoids loud noise"] };
 

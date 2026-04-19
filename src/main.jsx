@@ -5,7 +5,7 @@ import Auth from './Auth.jsx'
 import ReadilyApp from './readily-app.jsx'
 import ReadilyLanding from './readily-landing.jsx'
 
-const DEMO_EMAIL = 'bunmioluwa@gmail.com'
+const DEMO_EMAIL = 'ablepamhc@gmail.com'
 
 // ─── HELPERS ───────────────────────────────────────────────────────────────
 const getParam = (key) => new URLSearchParams(window.location.search).get(key)
