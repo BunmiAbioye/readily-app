@@ -330,7 +330,7 @@ function WeeklyDigestScreen({ child, sessions }) {
   const [digest, setDigest] = useState(null);
   const [loading, setLoading] = useState(false);
   const [openCard, setOpenCard] = useState(null);
-  const ran = useRef(false);
+
 
   const generate = async () => {
     if (!sessions.length && !child) return;
@@ -346,7 +346,7 @@ function WeeklyDigestScreen({ child, sessions }) {
     } catch(e) { console.error("[Readily] Digest error:", e); } finally { setLoading(false); }
   };
 
-  useEffect(() => { if (!ran.current) { ran.current=true; generate(); } }, []);
+  // Digest generates on demand only — not auto on mount to avoid errors on page load
 
   const overall = (() => {
     if (!sessions.length) return {label:"No sessions yet",color:T.ink3,bg:T.surface,emoji:"📅"};
