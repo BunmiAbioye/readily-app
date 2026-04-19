@@ -55,11 +55,14 @@ function WaitlistForm({ dark = false, size = "default" }) {
     setLoading(true); setError("");
     try {
       const { error: sbError } = await supabase.from("waitlist").upsert({ email: email.trim().toLowerCase(), role, signed_up_at: new Date().toISOString() }, { onConflict: "email" });
-      if (sbError) throw sbError;
+      if (sbError) {
+        console.error("[Readily] Waitlist error:", sbError);
+        throw sbError;
+      }
       setDone(true);
     } catch (e) {
-      console.error(e);
-      setError("Something went wrong. Try again.");
+      console.error("[Readily] Waitlist catch:", e);
+      setError(e?.message || "Something went wrong. Try again.");
     } finally { setLoading(false); }
   };
 
