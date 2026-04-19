@@ -124,12 +124,16 @@ const calcT = t => {
   return { months:mo, totalSessions:tot, grossTotal:gross, covered:gross*(cov.pct/100), outOfPocket:gross*(1-cov.pct/100), sessPerMonth:spm };
 };
 
-const apiHeaders = () => ({
-  "Content-Type": "application/json",
-  "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY,
-  "anthropic-version": "2023-06-01",
-  "anthropic-dangerous-direct-browser-access": "true",
-});
+const apiHeaders = () => {
+  const key = import.meta.env.VITE_ANTHROPIC_KEY;
+  if (!key) console.error("[Readily] VITE_ANTHROPIC_KEY is missing. Check your .env file and Vercel environment variables.");
+  return {
+    "Content-Type": "application/json",
+    "x-api-key": key || "",
+    "anthropic-version": "2023-06-01",
+    "anthropic-dangerous-direct-browser-access": "true",
+  };
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PASSPORT BUILDER
@@ -345,7 +349,7 @@ function WeeklyDigestScreen({ child, sessions }) {
       const data = await r.json();
       const text = data.content?.map(b=>b.text||"").join("") || "";
       setDigest(JSON.parse(text.replace(/```json|```/g,"").trim()));
-    } catch(e) { console.error(e); } finally { setLoading(false); }
+    } catch(e) { console.error("[Readily] Digest error:", e); } finally { setLoading(false); }
   };
 
   useEffect(() => { if (!ran.current) { ran.current=true; generate(); } }, []);
@@ -920,8 +924,9 @@ function ChatPanel({ onClose, role="parent", child, sessions, goals, therapies }
     try {
       const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:apiHeaders(),body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:systemPrompt,messages:next.map(m=>({role:m.role,content:m.content}))})});
       const data=await res.json();
+      if (data.error) { console.error("[Readily] API error:", data.error); throw new Error(data.error.message || "API error"); }
       setMessages(prev=>[...prev,{role:"assistant",content:data.content?.map(b=>b.text||"").join("")||"Sorry, I couldn't get a response."}]);
-    } catch(e) { setMessages(prev=>[...prev,{role:"assistant",content:"Something went wrong. Please try again."}]); }
+    } catch(e) { console.error("[Readily] Chat error:", e); setMessages(prev=>[...prev,{role:"assistant",content:"Something went wrong. Please try again."}]); }
     finally { setLoading(false); }
   };
 
