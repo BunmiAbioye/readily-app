@@ -3,6 +3,19 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { supabase } from "./supabase";
 
 // ═══════════════════════════════════════════════════════════════════════════
+// RESPONSIVE HOOK
+// ═══════════════════════════════════════════════════════════════════════════
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 640 : false);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return isMobile;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // DESIGN TOKENS
 // ═══════════════════════════════════════════════════════════════════════════
 const T = {
@@ -289,7 +302,7 @@ function PassportBuilder({ session, child, onSaved }) {
   ];
 
   return (
-    <div style={{ maxWidth:560, margin:"0 auto" }}>
+    <div style={{ maxWidth:560, margin:"0 auto", width:"100%" }}>
       <div style={{ marginBottom:20 }}>
         <div style={{ display:"flex", gap:6, marginBottom:16 }}>
           {PASSPORT_STEPS.map((s,i)=><div key={s} style={{ height:4, flex:1, borderRadius:2, background:i<=step?T.teal:T.border, transition:"background 0.3s" }} />)}
@@ -384,7 +397,7 @@ function WeeklyDigestScreen({ child, sessions }) {
           </div>
           <h3 style={{ margin:"0 0 12px", fontSize:19, fontWeight:800, color:T.ink, fontFamily:"'DM Sans',sans-serif", lineHeight:1.3 }}>{digest.headline}</h3>
           <p style={{ margin:"0 0 18px", fontSize:14, color:T.ink2, fontFamily:"'DM Sans',sans-serif", lineHeight:1.7 }}>{digest.narrative}</p>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:10, marginBottom:14 }}>
             <div style={{ background:T.greenL, borderRadius:10, padding:"12px 14px", border:"1px solid #86efac" }}>
               <div style={{ fontSize:10, fontWeight:700, color:T.green, fontFamily:"'DM Sans',sans-serif", marginBottom:5 }}>🏆 BIG WIN</div>
               <p style={{ margin:0, fontSize:12, color:"#14532d", fontFamily:"'DM Sans',sans-serif", lineHeight:1.5 }}>{digest.bigWin}</p>
@@ -640,7 +653,7 @@ function CostEstimatorScreen({ child, therapies: initialTherapies, onTherapiesCh
         </div>
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:10, marginBottom:18 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:8, marginBottom:18 }}>
         {[{label:"Gross Total",value:fmt$(totals.gross),color:T.ink,bg:T.white},{label:"Insurance Covers",value:fmt$(totals.covered),color:T.green,bg:T.greenL},{label:"Your Out-of-Pocket",value:fmt$(totals.oop),color:T.rose,bg:T.roseL},{label:"Monthly Average",value:fmt$(totals.oop/Math.max(1,Math.max(...calcs.map(c=>c.months||1)))),color:T.amber,bg:T.amberL}].map((s,i)=>(
           <div key={i} style={{ background:s.bg, border:`1.5px solid ${T.border}`, borderRadius:12, padding:"14px 16px" }}>
             <div style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", textTransform:"uppercase", marginBottom:5 }}>{s.label}</div>
@@ -678,7 +691,7 @@ function CostEstimatorScreen({ child, therapies: initialTherapies, onTherapiesCh
                 </div>
                 {expanded===t.id&&(
                   <div style={{ padding:"0 16px 16px", borderTop:`1px solid ${T.border}` }}>
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginTop:14 }}>
+                    <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:10, marginTop:14 }}>
                       <div><label style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>FREQUENCY</label><div style={{ display:"flex", gap:5 }}><input type="number" value={t.frequency} min="1" onChange={e=>updateLocal(t.id,"frequency",e.target.value)} style={{ width:60, padding:"8px 8px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink }} /><select value={t.freqUnit} onChange={e=>updateLocal(t.id,"freqUnit",e.target.value)} style={{ flex:1, padding:"8px 8px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.ink }}><option value="week">per week</option><option value="month">per month</option><option value="year">per year</option></select></div></div>
                       <div><label style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>COST/SESSION</label><div style={{ position:"relative" }}><span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:T.ink3, fontSize:13 }}>$</span><input type="number" value={t.costPerSession} min="0" onChange={e=>updateLocal(t.id,"costPerSession",e.target.value)} style={{ width:"100%", padding:"8px 10px 8px 22px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink, boxSizing:"border-box" }} /></div></div>
                       <div><label style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>START</label><input type="date" value={t.startDate||""} onChange={e=>updateLocal(t.id,"startDate",e.target.value)} style={{ width:"100%", padding:"8px 10px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink, boxSizing:"border-box" }} /></div>
@@ -690,7 +703,7 @@ function CostEstimatorScreen({ child, therapies: initialTherapies, onTherapiesCh
                         </div>
                       </div>
                     </div>
-                    <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginTop:12 }}>
+                    <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6, marginTop:12 }}>
                       {[{l:"Sessions",v:c.totalSessions},{l:"Gross",v:fmt$(c.grossTotal)},{l:"Out of Pocket",v:fmt$(c.outOfPocket),hi:true}].map((s,j)=>(
                         <div key={j} style={{ background:s.hi?T.roseL:T.surface, borderRadius:8, padding:"8px 10px", border:`1px solid ${s.hi?T.rose+"44":T.border}` }}>
                           <div style={{ fontSize:9, color:s.hi?T.rose:T.ink3, fontFamily:"'DM Sans',sans-serif", marginBottom:2 }}>{s.l}</div>
@@ -756,7 +769,7 @@ function ProviderView({ child, session: authSession }) {
         <div style={{ fontSize:10, fontWeight:700, color:"#38bdf8", fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.1em", marginBottom:4 }}>ACTIVITY LOG</div>
         <h2 style={{ margin:"0 0 10px", fontSize:24, fontWeight:800, color:"#eef2ff", fontFamily:"'DM Sans',sans-serif" }}>Log activity with {child?.name||"—"}</h2>
         {/* Logger type toggle */}
-        <div style={{ display:"flex", gap:6, background:"#111827", borderRadius:10, padding:4, border:"1px solid #2a3348", width:"fit-content" }}>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:6, background:"#111827", borderRadius:10, padding:4, border:"1px solid #2a3348", width:"fit-content" }}>
           {[["provider","🩺 Provider / Therapist"],["parent","🏠 Parent / Caregiver"]].map(([id,lbl])=>(
             <button key={id} onClick={()=>{setLoggerType(id);setFocus([]);}} style={{ padding:"7px 16px", borderRadius:7, border:"none", background:loggerType===id?"#1e3a5f":"transparent", color:loggerType===id?"#eef2ff":"#6b8299", fontFamily:"'DM Sans',sans-serif", fontWeight:loggerType===id?700:500, fontSize:13, cursor:"pointer" }}>{lbl}</button>
           ))}
@@ -783,7 +796,7 @@ function ProviderView({ child, session: authSession }) {
       </div>
       <div style={{ marginBottom:18 }}>
         <label style={{ fontSize:10, fontWeight:700, color:"#6b8299", fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.08em", display:"block", marginBottom:8 }}>{loggerType==="parent"?`HOW DID ${child?.name?.toUpperCase()||"THEY"} DO AT HOME? *`:`HOW DID ${child?.name?.toUpperCase()||"THE CHILD"} RESPOND? *`}</label>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:7 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:7 }}>
           {RESP_OPTS.map(opt=><button key={opt.label} onClick={()=>setResponse(opt.label)} style={{ padding:"11px 6px", borderRadius:10, border:response===opt.label?`2px solid ${opt.color}`:"1.5px solid #2a3348", background:response===opt.label?opt.color+"18":"#1e2535", color:response===opt.label?opt.color:"#6b8299", fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:response===opt.label?700:400, cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:5 }}><span style={{ fontSize:18 }}>{opt.icon}</span>{opt.label}</button>)}
         </div>
       </div>
@@ -801,6 +814,7 @@ function ProviderView({ child, session: authSession }) {
 // DASHBOARD
 // ═══════════════════════════════════════════════════════════════════════════
 function Dashboard({ setPage, child, sessions, goals, therapies }) {
+  const isMobile = useIsMobile();
   const overall = (() => {
     if (!sessions.length) return {label:"No sessions yet",color:T.ink3,bg:T.surface,emoji:"📅"};
     const map={Exceptional:4,Good:3,Mixed:2,Difficult:1};
@@ -817,7 +831,7 @@ function Dashboard({ setPage, child, sessions, goals, therapies }) {
     <div style={{ maxWidth:680, margin:"0 auto" }}>
       <div style={{ marginBottom:24 }}>
         <div style={{ fontSize:11, fontWeight:700, color:T.teal, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.08em", marginBottom:4 }}>GOOD MORNING</div>
-        <h2 style={{ margin:"0 0 4px", fontSize:26, fontWeight:800, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>Welcome back 👋</h2>
+        <h2 style={{ margin:"0 0 4px", fontSize:isMobile?22:26, fontWeight:800, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>Welcome back 👋</h2>
         <p style={{ margin:0, fontSize:14, color:T.ink3, fontFamily:"'DM Sans',sans-serif" }}>Here's {childName}'s snapshot for the week.</p>
       </div>
 
@@ -839,28 +853,28 @@ function Dashboard({ setPage, child, sessions, goals, therapies }) {
         </div>
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, marginBottom:16 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:isMobile?6:8, marginBottom:16 }}>
         {[
           {label:"Sessions This Week",value:sessions.length,emoji:"📅",color:T.indigo},
           {label:"Week's Out-of-Pocket",value:fmt$(weekOop),emoji:"💰",color:T.rose},
           {label:"Goals Tracked",value:goals.length,emoji:"🎯",color:T.green},
         ].map((s,i)=>(
-          <div key={i} style={{ background:T.white, border:`1px solid ${T.border}`, borderRadius:12, padding:"14px 16px" }}>
-            <div style={{ fontSize:18, marginBottom:5 }}>{s.emoji}</div>
-            <div style={{ fontSize:20, fontWeight:800, color:s.color, fontFamily:"'DM Sans',sans-serif" }}>{s.value}</div>
-            <div style={{ fontSize:11, color:T.ink3, fontFamily:"'DM Sans',sans-serif", marginTop:2 }}>{s.label}</div>
+          <div key={i} style={{ background:T.white, border:`1px solid ${T.border}`, borderRadius:12, padding:isMobile?"10px 10px":"14px 16px" }}>
+            <div style={{ fontSize:isMobile?14:18, marginBottom:4 }}>{s.emoji}</div>
+            <div style={{ fontSize:isMobile?16:20, fontWeight:800, color:s.color, fontFamily:"'DM Sans',sans-serif" }}>{s.value}</div>
+            <div style={{ fontSize:isMobile?9:11, color:T.ink3, fontFamily:"'DM Sans',sans-serif", marginTop:2, lineHeight:1.3 }}>{s.label}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:10 }}>
         {[
           {id:"digest",    emoji:"📬",title:"Weekly Digest",  desc:`See ${childName}'s AI-generated week summary`,color:T.gold},
           {id:"passport",  emoji:"🪪", title:"Child Profile",  desc:`View or update ${childName}'s profile`,       color:T.teal},
           {id:"documents", emoji:"📁", title:"Docs & Goals",   desc:"Upload IEPs and generate progress reports",   color:T.indigo},
           {id:"costs",     emoji:"💰", title:"Cost Planner",   desc:"Track therapy spend and coverage",            color:T.rose},
         ].map(s=>(
-          <button key={s.id} onClick={()=>setPage(s.id)} style={{ background:T.white, border:`1.5px solid ${T.border}`, borderRadius:14, padding:"16px 18px", textAlign:"left", cursor:"pointer", display:"block", transition:"all 0.2s" }}
+          <button key={s.id} onClick={()=>setPage(s.id)} style={{ background:T.white, border:`1.5px solid ${T.border}`, borderRadius:14, padding:isMobile?"12px 14px":"16px 18px", textAlign:"left", cursor:"pointer", display:"block", transition:"all 0.2s" }}
             onMouseEnter={e=>{e.currentTarget.style.borderColor=s.color;e.currentTarget.style.boxShadow=`0 4px 16px ${s.color}20`;}}
             onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.boxShadow="none";}}>
             <div style={{ fontSize:24, marginBottom:8 }}>{s.emoji}</div>
@@ -914,7 +928,7 @@ function ChatPanel({ onClose, role="parent", child, sessions, goals, therapies }
   const suggestions = [`What's been the biggest win for ${childName} recently?`, "What should I try at home when they have a meltdown?", "What patterns do providers keep noticing?", ...(perms.seeCosts?["How much have we spent on therapy?"]:[])];
 
   return (
-    <div style={{ position:"fixed", bottom:88, right:24, zIndex:100, width:380, maxWidth:"calc(100vw - 48px)", background:T.white, borderRadius:20, boxShadow:"0 8px 40px rgba(15,23,42,0.18)", border:`1px solid ${T.border}`, display:"flex", flexDirection:"column", maxHeight:"min(560px,calc(100vh - 120px))", animation:"chatSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1) both" }}>
+    <div style={{ position:"fixed", bottom:"env(safe-area-inset-bottom,0px)", right:0, left:0, zIndex:100, margin:"0 auto", width:"100%", maxWidth:440, background:T.white, borderRadius:"20px 20px 0 0", boxShadow:"0 -4px 40px rgba(15,23,42,0.18)", border:`1px solid ${T.border}`, display:"flex", flexDirection:"column", maxHeight:"min(560px,80vh)", animation:"chatSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1) both" }}>
       <div style={{ padding:"14px 16px", borderBottom:`1px solid ${T.border}`, display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
         <div style={{ width:36, height:36, borderRadius:"50%", background:`linear-gradient(135deg,${T.teal},${T.indigo})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>⚡</div>
         <div style={{ flex:1 }}>
@@ -951,13 +965,14 @@ function ChatPanel({ onClose, role="parent", child, sessions, goals, therapies }
   );
 }
 
-function ChatButton({ role="parent", child, sessions, goals, therapies }) {
+function ChatButton({ role="parent", child, sessions, goals, therapies, isMobile=false }) {
   const [open, setOpen] = useState(false);
   if (!CHAT_ROLES[role]?.canChat) return null;
+  const btnBottom = isMobile ? 68 : 24;
   return (
     <>
       {open&&<ChatPanel onClose={()=>setOpen(false)} role={role} child={child} sessions={sessions} goals={goals} therapies={therapies} />}
-      <button onClick={()=>setOpen(v=>!v)} style={{ position:"fixed", bottom:24, right:24, zIndex:101, width:56, height:56, borderRadius:"50%", border:"none", background:open?T.ink:`linear-gradient(135deg,${T.teal},${T.indigo})`, color:"#fff", cursor:"pointer", fontSize:open?20:22, boxShadow:"0 4px 20px rgba(13,148,136,0.4)", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.25s cubic-bezier(0.34,1.56,0.64,1)" }}>
+      <button onClick={()=>setOpen(v=>!v)} style={{ position:"fixed", bottom:btnBottom, right:24, zIndex:201, width:50, height:50, borderRadius:"50%", border:"none", background:open?T.ink:`linear-gradient(135deg,${T.teal},${T.indigo})`, color:"#fff", cursor:"pointer", fontSize:open?18:20, boxShadow:"0 4px 20px rgba(13,148,136,0.4)", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.25s cubic-bezier(0.34,1.56,0.64,1)" }}>
         {open?"×":"💬"}
       </button>
     </>
@@ -968,6 +983,7 @@ function ChatButton({ role="parent", child, sessions, goals, therapies }) {
 // SHELL
 // ═══════════════════════════════════════════════════════════════════════════
 export default function ReadilyApp({ session }) {
+  const isMobile = useIsMobile();
   const [page, setPage] = useState("dashboard");
   const isProvider = page === "provider";
   const isDemo = session?.user?.email === DEMO_EMAIL;
@@ -1071,12 +1087,15 @@ export default function ReadilyApp({ session }) {
         ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:transparent;} ::-webkit-scrollbar-thumb{background:${T.border2};border-radius:2px;}
         input:focus,textarea:focus,select:focus{outline:none;border-color:${T.teal}!important;box-shadow:0 0 0 3px ${T.teal}18!important;}
         select option{background:${T.white};color:${T.ink};} button{transition:all 0.15s;}
+        @media(max-width:640px){
+          input,textarea,select{font-size:16px!important;}
+        }
       `}</style>
 
       <div style={{ display:"flex", height:"100vh", overflow:"hidden", background:isProvider?"#0c1a2e":T.bg, fontFamily:"'DM Sans',sans-serif" }}>
 
-        {/* Sidebar */}
-        <div style={{ width:220, minWidth:220, background:T.nav, display:"flex", flexDirection:"column", borderRight:"1px solid rgba(255,255,255,0.06)", flexShrink:0, overflowY:"auto" }}>
+        {/* Sidebar — hidden on mobile, shown on desktop */}
+        {!isMobile && <div style={{ width:220, minWidth:220, background:T.nav, display:"flex", flexDirection:"column", borderRight:"1px solid rgba(255,255,255,0.06)", flexShrink:0, overflowY:"auto" }}>
           <div style={{ padding:"18px 18px 14px", borderBottom:"1px solid rgba(255,255,255,0.06)" }}>
             <div style={{ display:"flex", alignItems:"center", gap:9 }}>
               <div style={{ width:32, height:32, borderRadius:8, background:T.tealD, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>⚡</div>
@@ -1122,26 +1141,52 @@ export default function ReadilyApp({ session }) {
               )}
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* Main content */}
         <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
-          <div style={{ height:52, borderBottom:`1px solid ${isProvider?"rgba(255,255,255,0.06)":T.border}`, display:"flex", alignItems:"center", padding:"0 24px", background:isProvider?"#0f1923":T.white, flexShrink:0 }}>
+          <div style={{ height:52, borderBottom:`1px solid ${isProvider?"rgba(255,255,255,0.06)":T.border}`, display:"flex", alignItems:"center", padding:isMobile?"0 16px":"0 24px", background:isProvider?"#0f1923":T.white, flexShrink:0 }}>
             <div style={{ flex:1 }}>
               <div style={{ fontSize:14, fontWeight:700, color:isProvider?"#eef2ff":T.ink, fontFamily:"'DM Sans',sans-serif" }}>{NAV.find(n=>n.id===page)?.label||"Dashboard"}</div>
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
               <div style={{ width:30, height:30, borderRadius:"50%", background:`linear-gradient(135deg,${T.teal},${T.indigo})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:800, color:"#fff" }}>{initial}</div>
-              <span style={{ fontSize:13, fontWeight:600, color:isProvider?"#8b9cc8":T.ink2, fontFamily:"'DM Sans',sans-serif" }}>{displayName}</span>
+              {!isMobile && <span style={{ fontSize:13, fontWeight:600, color:isProvider?"#8b9cc8":T.ink2, fontFamily:"'DM Sans',sans-serif" }}>{displayName}</span>}
             </div>
           </div>
-          <div key={page} style={{ flex:1, overflowY:"auto", padding:"28px 24px 48px", background:isProvider?"#0e1117":T.bg, animation:"fadeIn 0.25s ease both" }}>
+          <div key={page} style={{ flex:1, overflowY:"auto", padding:isMobile?"16px 14px 80px":"28px 24px 48px", background:isProvider?"#0e1117":T.bg, animation:"fadeIn 0.25s ease both" }}>
             {SCREENS[page]}
           </div>
         </div>
       </div>
 
-      {!isProvider&&<ChatButton role="parent" child={child} sessions={sessions} goals={goals} therapies={therapies} />}
+      {!isProvider&&<ChatButton role="parent" child={child} sessions={sessions} goals={goals} therapies={therapies} isMobile={isMobile} />}
+
+      {/* Mobile bottom nav */}
+      {isMobile && !isProvider && (
+        <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:200, background:T.nav, borderTop:"1px solid rgba(255,255,255,0.08)", display:"flex", height:60, paddingBottom:"env(safe-area-inset-bottom)" }}>
+          {[
+            {id:"dashboard", icon:"⊞", label:"Home"},
+            {id:"passport",  icon:"🪪", label:"Profile"},
+            {id:"digest",    icon:"📬", label:"Digest"},
+            {id:"documents", icon:"📁", label:"Docs"},
+            {id:"costs",     icon:"💰", label:"Costs"},
+          ].map(n=>(
+            <button key={n.id} onClick={()=>setPage(n.id)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, background:"none", border:"none", cursor:"pointer", color:page===n.id?"#0d9488":"rgba(255,255,255,0.4)", padding:"6px 0" }}>
+              <span style={{ fontSize:18, lineHeight:1 }}>{n.icon}</span>
+              <span style={{ fontSize:9, fontWeight:page===n.id?700:500, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.02em" }}>{n.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {isMobile && isProvider && (
+        <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:200, background:"#0c1a2e", borderTop:"1px solid rgba(255,255,255,0.08)", display:"flex", height:60 }}>
+          <button onClick={()=>setPage("dashboard")} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.5)", padding:"6px 0" }}>
+            <span style={{ fontSize:18 }}>⊞</span>
+            <span style={{ fontSize:9, fontFamily:"'DM Sans',sans-serif" }}>Back</span>
+          </button>
+        </div>
+      )}
     </>
   );
 }
