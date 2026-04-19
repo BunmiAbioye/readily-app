@@ -1,33 +1,46 @@
-export default async function handler(req, res) {
-  // Only allow POST
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+export const config = {
+  runtime: 'edge',
+};
+
+export default async function handler(req) {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
-  const apiKey = process.env.VITE_ANTHROPIC_KEY || process.env.ANTHROPIC_KEY;
+  const apiKey = process.env.ANTHROPIC_KEY || process.env.VITE_ANTHROPIC_KEY;
 
   if (!apiKey) {
-    console.error("[Readily] ANTHROPIC_KEY not set in environment");
-    return res.status(500).json({ error: { type: "config_error", message: "API key not configured" } });
+    return new Response(JSON.stringify({ error: { type: 'config_error', message: 'API key not configured' } }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
+    const body = await req.json();
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify(req.body),
+      body: JSON.stringify(body),
     });
 
     const data = await response.json();
-
-    // Forward the status and response
-    return res.status(response.status).json(data);
+    return new Response(JSON.stringify(data), {
+      status: response.status,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
-    console.error("[Readily] Proxy error:", error);
-    return res.status(500).json({ error: { type: "proxy_error", message: error.message } });
+    return new Response(JSON.stringify({ error: { type: 'proxy_error', message: error.message } }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
