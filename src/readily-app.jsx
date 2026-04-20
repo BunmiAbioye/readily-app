@@ -220,22 +220,25 @@ function PassportBuilder({ session, child, onSaved }) {
   // Load existing share token on mount (for existing profiles)
   useEffect(() => {
     if (!child?.id || isDemo) return;
+    console.log("[Readily] Loading share token for child:", child.id);
     supabase.from("passport_shares").select("token").eq("child_id", child.id).eq("active", true).maybeSingle()
-      .then(({ data }) => { if (data?.token) setShareUrl(`${window.location.origin}/passport/${data.token}`); });
+      .then(({ data, error }) => {
+        console.log("[Readily] Share token result:", data, "error:", error);
+        if (data?.token) setShareUrl(`${window.location.origin}/passport/${data.token}`);
+      });
   }, [child?.id]);
 
   const generateShareLink = async () => {
     if (!child?.id || isDemo) return;
     setShareLoading(true);
     try {
-      // Generate a random token
       const token = Math.random().toString(36).substring(2,10) + Math.random().toString(36).substring(2,10);
-      // Deactivate any existing tokens for this child
+      console.log("[Readily] Generating share token:", token, "for child:", child.id);
       await supabase.from("passport_shares").update({ active: false }).eq("child_id", child.id);
-      // Create new token
       const { error } = await supabase.from("passport_shares").insert({ child_id: child.id, token, active: true });
+      console.log("[Readily] Share insert error:", error);
       if (!error) setShareUrl(`${window.location.origin}/passport/${token}`);
-    } catch(e) { console.error(e); }
+    } catch(e) { console.error("[Readily] generateShareLink error:", e); }
     finally { setShareLoading(false); }
   };
 
@@ -280,10 +283,12 @@ function PassportBuilder({ session, child, onSaved }) {
 
   const doSave = async () => {
     setSaving(true);
+    console.log("[Readily] doSave called, child.id:", child?.id, "session.user.id:", session?.user?.id);
     const payload = { family_id:session.user.id, name:d.name, age:parseInt(d.age)||null, school:d.school, diagnosis:d.diagnosis, motivators:d.motivators, calming:d.calming, communication:d.comm, triggers:d.triggers, sensory:d.sensory, notes:d.notes };
     let childId = child?.id;
     if (child?.id) {
-      await supabase.from("children").update(payload).eq("id", child.id);
+      const { error } = await supabase.from("children").update(payload).eq("id", child.id);
+      console.log("[Readily] update result error:", error);
     } else {
       const { data: saved } = await supabase.from("children").insert(payload).select().single();
       if (saved) childId = saved.id;
