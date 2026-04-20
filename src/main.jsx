@@ -5,6 +5,7 @@ import Auth from './Auth.jsx'
 import ReadilyApp from './readily-app.jsx'
 import ReadilyLanding from './readily-landing.jsx'
 import LegalPage from './LegalPage.jsx'
+import PublicPassport from './PublicPassport.jsx'
 
 const DEMO_EMAIL = 'ablepamhc@gmail.com'
 
@@ -98,6 +99,12 @@ function Root() {
   const goToLegal = () => {
     setParam('auth', 'legal')
     setShowLegal(true)
+  }
+
+  // ── Public passport route — no auth needed ──
+  const passportMatch = window.location.pathname.match(/^\/passport\/([a-z0-9]+)$/i);
+  if (passportMatch) {
+    return <PublicPassport token={passportMatch[1]} />;
   }
 
   // ── Loading spinner ──
