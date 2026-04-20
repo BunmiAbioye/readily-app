@@ -209,15 +209,6 @@ function PassportBuilder({ session, child, onSaved }) {
   const [shareLoading, setShareLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [revoking, setRevoking] = useState(false);
-  const [shareToken, setShareToken] = useState(null);
-  const [shareCopied, setShareCopied] = useState(false);
-  const [shareLoading, setShareLoading] = useState(false);
-
-  useEffect(() => {
-    if (!child?.id || isDemo) return;
-    supabase.from("passport_shares").select("token").eq("child_id", child.id).eq("revoked", false).maybeSingle()
-      .then(({ data }) => { if (data?.token) setShareToken(data.token); });
-  }, [child?.id]);
   const [team, setTeam] = useState([]);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("Speech Therapist");
@@ -277,47 +268,6 @@ function PassportBuilder({ session, child, onSaved }) {
 
   const removeFromTeam = (email) => setTeam(prev=>prev.filter(t=>t.email!==email));
   const inp = { width:"100%", padding:"10px 12px", borderRadius:"8px", border:`1.5px solid ${T.border}`, fontFamily:"'DM Sans',sans-serif", fontSize:"14px", color:T.ink, background:T.white, boxSizing:"border-box" };
-
-  const getOrCreateShareToken = async () => {
-    if (!child?.id || isDemo) return null;
-    setShareLoading(true);
-    try {
-      // Check if a token already exists
-      const { data: existing } = await supabase
-        .from("passport_shares")
-        .select("token")
-        .eq("child_id", child.id)
-        .eq("revoked", false)
-        .maybeSingle();
-      if (existing?.token) { setShareToken(existing.token); return existing.token; }
-      // Create a new token
-      const token = Math.random().toString(36).substring(2,10) + Math.random().toString(36).substring(2,10);
-      const { data } = await supabase
-        .from("passport_shares")
-        .insert({ child_id: child.id, token, revoked: false })
-        .select("token")
-        .single();
-      if (data?.token) { setShareToken(data.token); return data.token; }
-    } catch(e) { console.error(e); }
-    finally { setShareLoading(false); }
-    return null;
-  };
-
-  const handleCopyLink = async () => {
-    const token = shareToken || await getOrCreateShareToken();
-    if (!token) return;
-    const url = `${window.location.origin}/passport/${token}`;
-    await navigator.clipboard.writeText(url);
-    setShareCopied(true);
-    setTimeout(() => setShareCopied(false), 3000);
-  };
-
-  const handleRevokeLink = async () => {
-    if (!child?.id || !shareToken) return;
-    if (!confirm("Are you sure? Anyone with the current link will no longer be able to view the passport. You can generate a new link anytime.")) return;
-    await supabase.from("passport_shares").update({ revoked: true }).eq("token", shareToken);
-    setShareToken(null);
-  };
 
   const handleSave = async () => {
     if (!d.name.trim()) { alert("Please enter your child's name."); return; }
@@ -477,32 +427,6 @@ function PassportBuilder({ session, child, onSaved }) {
       <div style={{ background:T.white, borderRadius:16, padding:24, border:`1px solid ${T.border}`, boxShadow:"0 2px 12px rgba(0,0,0,0.05)", marginBottom:16 }}>
         {pages[step]}
       </div>
-      {/* Share Passport — visible once profile is saved */}
-      {child?.id && !isDemo && (
-        <div style={{ background:T.teal+"10", border:`1.5px solid ${T.teal}33`, borderRadius:12, padding:"14px 16px", marginBottom:14 }}>
-          <div style={{ fontSize:11, fontWeight:800, color:T.teal, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", textTransform:"uppercase", marginBottom:8 }}>🔗 Share Care Passport</div>
-          <p style={{ margin:"0 0 10px", fontSize:13, color:T.ink2, fontFamily:"'DM Sans',sans-serif", lineHeight:1.5 }}>
-            Share a read-only link with any provider, teacher, or caregiver. They see the profile — nothing else. You can revoke it anytime.
-          </p>
-          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-            <button onClick={handleCopyLink} disabled={shareLoading} style={{ flex:1, padding:"10px 16px", background:shareCopied?T.green:`linear-gradient(135deg,${T.teal},${T.tealD})`, border:"none", borderRadius:8, color:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:13, cursor:shareLoading?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:6, transition:"all 0.2s" }}>
-              <span>{shareCopied ? "✓" : shareLoading ? "⏳" : "🔗"}</span>
-              <span>{shareCopied ? "Link copied!" : shareLoading ? "Generating…" : shareToken ? "Copy link" : "Generate & copy link"}</span>
-            </button>
-            {shareToken && (
-              <button onClick={handleRevokeLink} style={{ padding:"10px 14px", background:T.white, border:`1.5px solid ${T.border}`, borderRadius:8, color:T.rose, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:"pointer" }}>
-                Revoke
-              </button>
-            )}
-          </div>
-          {shareToken && (
-            <div style={{ marginTop:8, padding:"7px 10px", background:T.white, borderRadius:6, border:`1px solid ${T.border}`, fontSize:11, color:T.ink3, fontFamily:"'DM Mono',monospace", wordBreak:"break-all" }}>
-              {window.location.origin}/passport/{shareToken}
-            </div>
-          )}
-        </div>
-      )}
-
       <div style={{ display:"flex", gap:10 }}>
         {step>0&&<button onClick={()=>setStep(s=>s-1)} style={{ padding:"11px 20px", background:T.white, border:`1.5px solid ${T.border}`, borderRadius:10, color:T.ink2, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:14, cursor:"pointer" }}>← Back</button>}
         {step<PASSPORT_STEPS.length-1
