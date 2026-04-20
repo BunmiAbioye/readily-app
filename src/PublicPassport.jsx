@@ -26,15 +26,11 @@ export default function PublicPassport({ token }) {
     const load = async () => {
       try {
         const { data, error } = await supabase
-          .from('passport_shares')
-          .select('child_id, children(*)')
-          .eq('token', token)
-          .eq('active', true)
-          .maybeSingle()
+          .rpc('get_child_by_passport_token', { p_token: token })
 
         if (error) { console.error('[Readily] Passport error:', error); setError('This passport link is invalid or has been revoked.'); return; }
-        if (!data) { setError('This passport link is invalid or has been revoked.'); return; }
-        setChild(data.children)
+        if (!data || data.length === 0) { setError('This passport link is invalid or has been revoked.'); return; }
+        setChild(data[0])
       } catch (e) {
         console.error(e)
         setError('Something went wrong loading this passport.')
