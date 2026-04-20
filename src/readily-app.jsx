@@ -201,16 +201,65 @@ function PassportBuilder({ session, child, onSaved }) {
     return { name:"", age:"", school:"", diagnosis:"", motivators:[], calming:[], comm:[], triggers:[], sensory:[], notes:"" };
   };
 
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(child?.id ? 4 : 0); // Go straight to profile view if editing
   const [d, setD] = useState(getInitialData);
   const [saving, setSaving] = useState(false);
   const [showPHIConsent, setShowPHIConsent] = useState(false);
+  const [shareUrl, setShareUrl] = useState(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [shareToken, setShareToken] = useState(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+
+  useEffect(() => {
+    if (!child?.id || isDemo) return;
+    supabase.from("passport_shares").select("token").eq("child_id", child.id).eq("revoked", false).maybeSingle()
+      .then(({ data }) => { if (data?.token) setShareToken(data.token); });
+  }, [child?.id]);
   const [team, setTeam] = useState([]);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("Speech Therapist");
   const [inviteAccess, setInviteAccess] = useState("session_log");
   const [inviting, setInviting] = useState(false);
   const upd = (k,v) => setD(x=>({...x,[k]:v}));
+
+  // Load existing share token on mount (for existing profiles)
+  useEffect(() => {
+    if (!child?.id || isDemo) return;
+    supabase.from("passport_shares").select("token").eq("child_id", child.id).eq("active", true).maybeSingle()
+      .then(({ data }) => { if (data?.token) setShareUrl(`${window.location.origin}/passport/${data.token}`); });
+  }, [child?.id]);
+
+  const generateShareLink = async () => {
+    if (!child?.id || isDemo) return;
+    setShareLoading(true);
+    try {
+      // Generate a random token
+      const token = Math.random().toString(36).substring(2,10) + Math.random().toString(36).substring(2,10);
+      // Deactivate any existing tokens for this child
+      await supabase.from("passport_shares").update({ active: false }).eq("child_id", child.id);
+      // Create new token
+      const { error } = await supabase.from("passport_shares").insert({ child_id: child.id, token, active: true });
+      if (!error) setShareUrl(`${window.location.origin}/passport/${token}`);
+    } catch(e) { console.error(e); }
+    finally { setShareLoading(false); }
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const revokeLink = async () => {
+    if (!child?.id) return;
+    setRevoking(true);
+    await supabase.from("passport_shares").update({ active: false }).eq("child_id", child.id);
+    setShareUrl(null);
+    setRevoking(false);
+  };
 
   const PROVIDER_ROLES = ["Speech Therapist","ABA Therapist","Occupational Therapist","Special Ed Teacher","Psychologist","Pediatrician","Parent / Caregiver","Grandparent / Family","Respite Worker","Other"];
   const ACCESS_LEVELS = [
@@ -228,6 +277,47 @@ function PassportBuilder({ session, child, onSaved }) {
 
   const removeFromTeam = (email) => setTeam(prev=>prev.filter(t=>t.email!==email));
   const inp = { width:"100%", padding:"10px 12px", borderRadius:"8px", border:`1.5px solid ${T.border}`, fontFamily:"'DM Sans',sans-serif", fontSize:"14px", color:T.ink, background:T.white, boxSizing:"border-box" };
+
+  const getOrCreateShareToken = async () => {
+    if (!child?.id || isDemo) return null;
+    setShareLoading(true);
+    try {
+      // Check if a token already exists
+      const { data: existing } = await supabase
+        .from("passport_shares")
+        .select("token")
+        .eq("child_id", child.id)
+        .eq("revoked", false)
+        .maybeSingle();
+      if (existing?.token) { setShareToken(existing.token); return existing.token; }
+      // Create a new token
+      const token = Math.random().toString(36).substring(2,10) + Math.random().toString(36).substring(2,10);
+      const { data } = await supabase
+        .from("passport_shares")
+        .insert({ child_id: child.id, token, revoked: false })
+        .select("token")
+        .single();
+      if (data?.token) { setShareToken(data.token); return data.token; }
+    } catch(e) { console.error(e); }
+    finally { setShareLoading(false); }
+    return null;
+  };
+
+  const handleCopyLink = async () => {
+    const token = shareToken || await getOrCreateShareToken();
+    if (!token) return;
+    const url = `${window.location.origin}/passport/${token}`;
+    await navigator.clipboard.writeText(url);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 3000);
+  };
+
+  const handleRevokeLink = async () => {
+    if (!child?.id || !shareToken) return;
+    if (!confirm("Are you sure? Anyone with the current link will no longer be able to view the passport. You can generate a new link anytime.")) return;
+    await supabase.from("passport_shares").update({ revoked: true }).eq("token", shareToken);
+    setShareToken(null);
+  };
 
   const handleSave = async () => {
     if (!d.name.trim()) { alert("Please enter your child's name."); return; }
@@ -345,6 +435,32 @@ function PassportBuilder({ session, child, onSaved }) {
           {s.content}
         </div>
       ))}
+      {/* Share passport section — only shown when profile exists */}
+      {child?.id && !isDemo && (
+        <div style={{ marginTop:16, padding:"16px", background:T.teal+"10", borderRadius:12, border:`1px solid ${T.teal}33` }}>
+          <div style={{ fontSize:11, fontWeight:700, color:T.teal, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:8 }}>🔗 Shareable Passport Link</div>
+          <p style={{ margin:"0 0 10px", fontSize:12, color:T.ink3, fontFamily:"'DM Sans',sans-serif", lineHeight:1.55 }}>
+            Share this link with any provider, teacher, or caregiver. They can view {d.name||"your child"}'s profile without needing an account.
+          </p>
+          {shareUrl ? (
+            <div>
+              <div style={{ display:"flex", gap:6, marginBottom:8 }}>
+                <div style={{ flex:1, padding:"8px 12px", background:T.white, border:`1px solid ${T.border}`, borderRadius:8, fontSize:12, color:T.ink2, fontFamily:"'DM Mono',monospace", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{shareUrl}</div>
+                <button onClick={copyLink} style={{ padding:"8px 14px", background:copied?T.green:T.teal, border:"none", borderRadius:8, color:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:12, cursor:"pointer", flexShrink:0, transition:"all 0.2s" }}>
+                  {copied ? "✓ Copied!" : "Copy"}
+                </button>
+              </div>
+              <button onClick={revokeLink} disabled={revoking} style={{ background:"none", border:"none", color:T.rose, fontFamily:"'DM Sans',sans-serif", fontSize:11, cursor:"pointer", fontWeight:600, padding:0 }}>
+                {revoking ? "Revoking…" : "× Revoke this link"}
+              </button>
+            </div>
+          ) : (
+            <button onClick={generateShareLink} disabled={shareLoading} style={{ width:"100%", padding:"10px", background:shareLoading?T.surface:`linear-gradient(135deg,${T.teal},${T.tealD})`, border:"none", borderRadius:8, color:shareLoading?T.ink3:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:13, cursor:shareLoading?"not-allowed":"pointer" }}>
+              {shareLoading ? "Generating…" : "🔗 Generate Share Link"}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   ];
 
@@ -361,6 +477,32 @@ function PassportBuilder({ session, child, onSaved }) {
       <div style={{ background:T.white, borderRadius:16, padding:24, border:`1px solid ${T.border}`, boxShadow:"0 2px 12px rgba(0,0,0,0.05)", marginBottom:16 }}>
         {pages[step]}
       </div>
+      {/* Share Passport — visible once profile is saved */}
+      {child?.id && !isDemo && (
+        <div style={{ background:T.teal+"10", border:`1.5px solid ${T.teal}33`, borderRadius:12, padding:"14px 16px", marginBottom:14 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:T.teal, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", textTransform:"uppercase", marginBottom:8 }}>🔗 Share Care Passport</div>
+          <p style={{ margin:"0 0 10px", fontSize:13, color:T.ink2, fontFamily:"'DM Sans',sans-serif", lineHeight:1.5 }}>
+            Share a read-only link with any provider, teacher, or caregiver. They see the profile — nothing else. You can revoke it anytime.
+          </p>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+            <button onClick={handleCopyLink} disabled={shareLoading} style={{ flex:1, padding:"10px 16px", background:shareCopied?T.green:`linear-gradient(135deg,${T.teal},${T.tealD})`, border:"none", borderRadius:8, color:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:13, cursor:shareLoading?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:6, transition:"all 0.2s" }}>
+              <span>{shareCopied ? "✓" : shareLoading ? "⏳" : "🔗"}</span>
+              <span>{shareCopied ? "Link copied!" : shareLoading ? "Generating…" : shareToken ? "Copy link" : "Generate & copy link"}</span>
+            </button>
+            {shareToken && (
+              <button onClick={handleRevokeLink} style={{ padding:"10px 14px", background:T.white, border:`1.5px solid ${T.border}`, borderRadius:8, color:T.rose, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:"pointer" }}>
+                Revoke
+              </button>
+            )}
+          </div>
+          {shareToken && (
+            <div style={{ marginTop:8, padding:"7px 10px", background:T.white, borderRadius:6, border:`1px solid ${T.border}`, fontSize:11, color:T.ink3, fontFamily:"'DM Mono',monospace", wordBreak:"break-all" }}>
+              {window.location.origin}/passport/{shareToken}
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ display:"flex", gap:10 }}>
         {step>0&&<button onClick={()=>setStep(s=>s-1)} style={{ padding:"11px 20px", background:T.white, border:`1.5px solid ${T.border}`, borderRadius:10, color:T.ink2, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:14, cursor:"pointer" }}>← Back</button>}
         {step<PASSPORT_STEPS.length-1
@@ -1082,10 +1224,131 @@ function ChatButton({ role="parent", child, sessions, goals, therapies, isMobile
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SHARED PASSPORT VIEW — public, no login required
+// ═══════════════════════════════════════════════════════════════════════════
+function SharedPassportView({ token }) {
+  const [child, setChild] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("passport_shares")
+          .select("child_id, children(*)")
+          .eq("token", token)
+          .eq("active", true)
+          .maybeSingle();
+        if (error || !data) { setError("This passport link is invalid or has been revoked."); return; }
+        setChild(data.children);
+      } catch(e) { setError("Something went wrong loading this passport."); }
+      finally { setLoading(false); }
+    };
+    load();
+  }, [token]);
+
+  if (loading) return (
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:T.bg, flexDirection:"column", gap:12 }}>
+      <div style={{ fontSize:32, animation:"spin 1s linear infinite" }}>⚡</div>
+      <div style={{ fontSize:13, color:T.ink3, fontFamily:"'DM Sans',sans-serif" }}>Loading passport…</div>
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
+  if (error) return (
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:T.bg, padding:24 }}>
+      <div style={{ background:T.white, borderRadius:16, padding:"32px 28px", maxWidth:440, width:"100%", textAlign:"center", border:`1px solid ${T.border}` }}>
+        <div style={{ fontSize:40, marginBottom:14 }}>🔒</div>
+        <h2 style={{ margin:"0 0 10px", fontSize:20, fontWeight:800, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>Passport unavailable</h2>
+        <p style={{ margin:"0 0 20px", fontSize:14, color:T.ink3, fontFamily:"'DM Sans',sans-serif", lineHeight:1.6 }}>{error}</p>
+        <a href="https://readily.ablepam.ca" style={{ fontSize:13, color:T.teal, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }}>← Back to Readily</a>
+      </div>
+    </div>
+  );
+
+  const sections = [
+    { label:"✓ What Works", color:T.green, items:[
+      { title:"Motivators & Interests", value:child.motivators?.join(", ")||"—" },
+      { title:"Calming Strategies", value:child.calming?.join(", ")||"—" },
+      { title:"Communication Style", value:child.communication?.join(", ")||"—" },
+    ]},
+    { label:"⚠ Watch For", color:"#dc2626", items:[
+      { title:"Triggers", value:child.triggers?.join(", ")||"—" },
+      { title:"Sensory Profile", value:child.sensory?.join(", ")||"—" },
+    ]},
+  ];
+
+  return (
+    <div style={{ minHeight:"100vh", background:T.bg, fontFamily:"'DM Sans',sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap'); *{box-sizing:border-box;margin:0;padding:0;}`}</style>
+      {/* Header */}
+      <div style={{ background:T.nav, padding:"14px 24px", display:"flex", alignItems:"center", gap:8 }}>
+        <div style={{ width:28, height:28, borderRadius:7, background:T.tealD, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>⚡</div>
+        <span style={{ fontSize:15, fontWeight:800, color:"#fff", letterSpacing:"-0.02em" }}>Readily</span>
+        <span style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginLeft:4, fontFamily:"'DM Sans',sans-serif" }}>Care Passport</span>
+      </div>
+
+      <div style={{ maxWidth:600, margin:"0 auto", padding:"32px 20px 60px" }}>
+        {/* Hero card */}
+        <div style={{ background:`linear-gradient(135deg,${T.tealD},${T.indigo})`, borderRadius:18, padding:"24px 26px", marginBottom:20, position:"relative", overflow:"hidden" }}>
+          <div style={{ position:"absolute", right:-20, top:-20, width:100, height:100, borderRadius:"50%", background:"rgba(255,255,255,0.07)" }} />
+          <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.6)", letterSpacing:"0.12em", marginBottom:8 }}>CARE PASSPORT</div>
+          <div style={{ fontSize:28, fontWeight:900, color:"#fff", marginBottom:4, letterSpacing:"-0.02em" }}>{child.name}</div>
+          <div style={{ fontSize:14, color:"rgba(255,255,255,0.7)" }}>
+            {[child.age&&`Age ${child.age}`, child.diagnosis, child.school].filter(Boolean).join(" · ")||"—"}
+          </div>
+          <div style={{ marginTop:14, padding:"8px 12px", background:"rgba(255,255,255,0.1)", borderRadius:8, fontSize:12, color:"rgba(255,255,255,0.7)", lineHeight:1.5 }}>
+            🔒 This is a read-only view shared by {child.name}'s family. Information is confidential and for care purposes only.
+          </div>
+        </div>
+
+        {/* Profile sections */}
+        {sections.map((section, si) => (
+          <div key={si} style={{ background:T.white, borderRadius:14, padding:"18px 20px", marginBottom:12, border:`1px solid ${T.border}` }}>
+            <div style={{ fontSize:10, fontWeight:800, color:section.color, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:14 }}>{section.label}</div>
+            {section.items.map((item, ii) => (
+              <div key={ii} style={{ marginBottom: ii < section.items.length-1 ? 12 : 0 }}>
+                <div style={{ fontSize:11, fontWeight:700, color:T.ink3, letterSpacing:"0.05em", textTransform:"uppercase", marginBottom:4 }}>{item.title}</div>
+                <div style={{ fontSize:13, color:T.ink2, lineHeight:1.6 }}>{item.value}</div>
+              </div>
+            ))}
+          </div>
+        ))}
+
+        {/* Notes */}
+        {child.notes && (
+          <div style={{ background:T.white, borderRadius:14, padding:"18px 20px", marginBottom:12, border:`1px solid ${T.border}` }}>
+            <div style={{ fontSize:10, fontWeight:800, color:T.ink3, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:10 }}>📝 ADDITIONAL NOTES</div>
+            <div style={{ fontSize:13, color:T.ink2, lineHeight:1.7 }}>{child.notes}</div>
+          </div>
+        )}
+
+        {/* Footer note */}
+        <div style={{ textAlign:"center", marginTop:24 }}>
+          <div style={{ fontSize:11, color:T.ink4, lineHeight:1.6 }}>
+            Shared via <strong style={{ color:T.teal }}>Readily</strong> by AblePam Inc. · This link was shared directly by the family.<br/>
+            Information is confidential. Please use only for the direct care of this child.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // SHELL
 // ═══════════════════════════════════════════════════════════════════════════
 export default function ReadilyApp({ session }) {
   const isMobile = useIsMobile();
+
+  // Check if this is a shared passport URL — /passport/TOKEN
+  const passportToken = useMemo(() => {
+    const path = window.location.pathname;
+    const match = path.match(/^\/passport\/([a-zA-Z0-9_-]+)$/);
+    return match ? match[1] : null;
+  }, []);
+
   const [page, setPage] = useState("dashboard");
   const isProvider = page === "provider";
   const isDemo = session?.user?.email === DEMO_EMAIL;
@@ -1156,6 +1419,9 @@ export default function ReadilyApp({ session }) {
     }
     setPage("dashboard");
   };
+
+  // Public shared passport view — no auth needed
+  if (passportToken) return <SharedPassportView token={passportToken} />;
 
   if (dataLoading) return (
     <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:T.bg, flexDirection:"column", gap:12 }}>
