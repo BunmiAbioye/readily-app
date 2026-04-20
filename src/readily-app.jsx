@@ -205,6 +205,7 @@ function PassportBuilder({ session, child, onSaved }) {
   const [d, setD] = useState(getInitialData);
   const [saving, setSaving] = useState(false);
   const [showPHIConsent, setShowPHIConsent] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [shareUrl, setShareUrl] = useState(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -214,7 +215,7 @@ function PassportBuilder({ session, child, onSaved }) {
   const [inviteRole, setInviteRole] = useState("Speech Therapist");
   const [inviteAccess, setInviteAccess] = useState("session_log");
   const [inviting, setInviting] = useState(false);
-  const upd = (k,v) => setD(x=>({...x,[k]:v}));
+  const upd = (k,v) => { setD(x=>({...x,[k]:v})); setSaved(false); };
 
   // Load existing share token on mount (for existing profiles)
   useEffect(() => {
@@ -292,7 +293,11 @@ function PassportBuilder({ session, child, onSaved }) {
       await supabase.from("invitations").upsert(invRows, { onConflict:"child_id,provider_email" });
     }
     setSaving(false);
-    onSaved && onSaved();
+    setSaved(true);
+    // For new profiles navigate away after 1.5s, for edits just show confirmation
+    if (!child?.id) {
+      setTimeout(() => { onSaved && onSaved(); }, 1500);
+    }
   };
 
   const pages = [
@@ -431,8 +436,8 @@ function PassportBuilder({ session, child, onSaved }) {
         {step>0&&<button onClick={()=>setStep(s=>s-1)} style={{ padding:"11px 20px", background:T.white, border:`1.5px solid ${T.border}`, borderRadius:10, color:T.ink2, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:14, cursor:"pointer" }}>← Back</button>}
         {step<PASSPORT_STEPS.length-1
           ? <button onClick={()=>setStep(s=>s+1)} style={{ flex:1, padding:"11px 20px", background:`linear-gradient(135deg,${T.teal},${T.tealD})`, border:"none", borderRadius:10, color:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:14, cursor:"pointer" }}>Continue →</button>
-          : <button onClick={handleSave} disabled={saving} style={{ flex:1, padding:"11px 20px", background:saving?T.surface:`linear-gradient(135deg,${T.indigo},${T.violet})`, border:"none", borderRadius:10, color:saving?T.ink3:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:14, cursor:saving?"not-allowed":"pointer" }}>
-              {saving ? "Saving…" : isDemo ? "📤 Share Profile (Demo)" : "💾 Save Profile"}
+          : <button onClick={handleSave} disabled={saving||saved} style={{ flex:1, padding:"11px 20px", background:saved?T.green:saving?T.surface:`linear-gradient(135deg,${T.indigo},${T.violet})`, border:"none", borderRadius:10, color:saving?T.ink3:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:14, cursor:saving||saved?"not-allowed":"pointer", transition:"all 0.3s" }}>
+              {saved ? "✓ Saved!" : saving ? "Saving…" : isDemo ? "📤 Share Profile (Demo)" : child?.id ? "💾 Save Changes" : "💾 Save Profile"}
             </button>}
       </div>
     </div>
