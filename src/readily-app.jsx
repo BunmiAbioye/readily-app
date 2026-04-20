@@ -429,7 +429,8 @@ function WeeklyDigestScreen({ child, sessions }) {
       // Use mailto as fallback — opens email client with pre-filled content
       const subject = encodeURIComponent(`Readily Weekly Digest — ${childName} — ${new Date().toLocaleDateString("en-US",{month:"short",day:"numeric"})}`);
       const body = encodeURIComponent(emailBody);
-      window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
+      // location.href is more reliable than window.open for mailto across browsers
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
       setEmailSent(true);
       setTimeout(() => setEmailSent(false), 4000);
     } catch(e) {
