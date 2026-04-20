@@ -384,7 +384,14 @@ function PassportBuilder({ session, child, onSaved }) {
       ))}
     </div>,
     <div key="review">
-      <p style={{ margin:"0 0 16px", fontSize:"14px", color:T.ink3, fontFamily:"'DM Sans',sans-serif" }}>{d.name||"Your child"}'s profile summary.</p>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexWrap:"wrap", gap:8 }}>
+        <p style={{ margin:0, fontSize:"14px", color:T.ink3, fontFamily:"'DM Sans',sans-serif" }}>{d.name||"Your child"}'s profile summary.</p>
+        {child?.id && (
+          <button onClick={()=>setStep(0)} style={{ padding:"6px 14px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, color:T.ink2, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:12, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
+            ✏️ Edit Profile
+          </button>
+        )}
+      </div>
       {[
         { label:"Child", color:T.teal, content:<><div style={{ fontSize:18, fontWeight:800, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>{d.name||"—"}</div><div style={{ fontSize:12, color:T.ink3, fontFamily:"'DM Sans',sans-serif", marginTop:3 }}>{[d.age&&`Age ${d.age}`,d.school,d.diagnosis].filter(Boolean).join(" · ")||"—"}</div></> },
         { label:"✓ What Works", color:T.green, content:<div style={{ fontSize:12, color:T.ink2, fontFamily:"'DM Sans',sans-serif", lineHeight:1.6 }}><b style={{ color:T.green }}>Motivators: </b>{d.motivators.join(", ")||"—"}<br/><b style={{ color:T.green }}>Calming: </b>{d.calming.join(", ")||"—"}<br/><b style={{ color:T.green }}>Communication: </b>{d.comm.join(", ")||"—"}</div> },
@@ -431,8 +438,10 @@ function PassportBuilder({ session, child, onSaved }) {
         <div style={{ display:"flex", gap:6, marginBottom:16 }}>
           {PASSPORT_STEPS.map((s,i)=><div key={s} style={{ height:4, flex:1, borderRadius:2, background:i<=step?T.teal:T.border, transition:"background 0.3s" }} />)}
         </div>
-        <div style={{ fontSize:11, fontWeight:700, color:T.teal, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:4 }}>Step {step+1} of {PASSPORT_STEPS.length} · {PASSPORT_STEPS[step]}</div>
-        <h2 style={{ margin:0, fontSize:22, fontWeight:800, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>{PASSPORT_STEPS[step]}</h2>
+        <div style={{ fontSize:11, fontWeight:700, color:T.teal, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:4 }}>
+          {child?.id && step < 4 ? "EDITING · " : ""}{PASSPORT_STEPS[step]} {step < 4 ? `· Step ${step+1} of 4` : ""}
+        </div>
+        <h2 style={{ margin:0, fontSize:22, fontWeight:800, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>{child?.id && step===0 ? `Edit ${d.name||"Profile"}` : PASSPORT_STEPS[step]}</h2>
       </div>
       <div style={{ background:T.white, borderRadius:16, padding:24, border:`1px solid ${T.border}`, boxShadow:"0 2px 12px rgba(0,0,0,0.05)", marginBottom:16 }}>
         {pages[step]}
@@ -440,7 +449,7 @@ function PassportBuilder({ session, child, onSaved }) {
       <div style={{ display:"flex", gap:10 }}>
         {step>0&&<button onClick={()=>setStep(s=>s-1)} style={{ padding:"11px 20px", background:T.white, border:`1.5px solid ${T.border}`, borderRadius:10, color:T.ink2, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:14, cursor:"pointer" }}>← Back</button>}
         {step<PASSPORT_STEPS.length-1
-          ? <button onClick={()=>setStep(s=>s+1)} style={{ flex:1, padding:"11px 20px", background:`linear-gradient(135deg,${T.teal},${T.tealD})`, border:"none", borderRadius:10, color:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:14, cursor:"pointer" }}>Continue →</button>
+          ? <button onClick={()=>{ if(child?.id && step===2) setStep(4); else setStep(s=>s+1); }} style={{ flex:1, padding:"11px 20px", background:`linear-gradient(135deg,${T.teal},${T.tealD})`, border:"none", borderRadius:10, color:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:14, cursor:"pointer" }}>{child?.id && step===2 ? "Done editing →" : "Continue →"}</button>
           : <button onClick={handleSave} disabled={saving||saved} style={{ flex:1, padding:"11px 20px", background:saved?T.green:saving?T.surface:`linear-gradient(135deg,${T.indigo},${T.violet})`, border:"none", borderRadius:10, color:saving?T.ink3:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:14, cursor:saving||saved?"not-allowed":"pointer", transition:"all 0.3s" }}>
               {saved ? "✓ Saved!" : saving ? "Saving…" : isDemo ? "📤 Share Profile (Demo)" : child?.id ? "💾 Save Changes" : "💾 Save Profile"}
             </button>}
