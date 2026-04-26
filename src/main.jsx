@@ -27,7 +27,6 @@ function Root() {
   const [loading, setLoading]   = useState(true)
   const [hasChild, setHasChild] = useState(false)
   const [isProvider, setIsProvider] = useState(false)
-  const [isProvider, setIsProvider] = useState(false)
   const [authMode, setAuthMode] = useState(null) // 'login' | 'signup' | null
   const [showLegal, setShowLegal] = useState(false)
 
