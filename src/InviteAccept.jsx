@@ -89,8 +89,8 @@ export default function InviteAccept({ token, onAuth }) {
         if (data.user) await acceptInvitation(data.user.id, data.user.email)
       }
       setAccepted(true)
-      // Redirect to app after 2 seconds
-      setTimeout(() => { onAuth && onAuth() }, 2000)
+      // Redirect to app after 2 seconds — main.jsx will detect provider and route correctly
+      setTimeout(() => { window.location.href = '/'; }, 2000)
     } catch(e) {
       if (e.message?.includes('Invalid login')) setAuthError('Incorrect email or password.')
       else if (e.message?.includes('already registered')) setAuthError('An account with this email exists. Try logging in.')
@@ -202,7 +202,7 @@ export default function InviteAccept({ token, onAuth }) {
           )}
 
           <button onClick={handleSubmit} disabled={submitting} style={{ width:'100%', marginTop:20, padding:13, background:submitting?T.ink3:`linear-gradient(135deg,${T.teal},${T.tealD})`, border:'none', borderRadius:10, color:'#fff', fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:15, cursor:submitting?'not-allowed':'pointer', boxShadow:submitting?'none':`0 4px 14px ${T.teal}44`, transition:'all 0.2s' }}>
-            {submitting ? '…' : mode==='login' ? 'Log in & accept invitation →' : 'Create account & accept →'}
+            {submitting ? '…' : mode==='login' ? 'Log in & join care team →' : 'Create account & join care team →'}
           </button>
 
           <div style={{ marginTop:16, textAlign:'center', fontSize:13, color:T.ink3 }}>
@@ -212,8 +212,11 @@ export default function InviteAccept({ token, onAuth }) {
             }
           </div>
 
-          <div style={{ marginTop:14, fontSize:11, color:T.ink4, textAlign:'center', lineHeight:1.5 }}>
-            By accepting, you agree to use this information only for the direct care of {invite?.children?.name}. View our <a href="https://readily.ablepam.ca?auth=legal" style={{ color:T.teal }}>Privacy Policy</a>.
+          <div style={{ marginTop:14, padding:'10px 12px', background:'#f6f8fb', borderRadius:8, border:'1px solid #e2e8f2' }}>
+            <div style={{ fontSize:11, color:'#64748b', fontFamily:"'DM Sans',sans-serif", lineHeight:1.55 }}>
+              By accepting, I confirm I will use {invite?.children?.name}'s information <strong>only for their direct care</strong>, will not share it with third parties, and understand my obligations under applicable privacy legislation (PHIPA). View our{' '}
+              <a href="https://readily.ablepam.ca?auth=legal" style={{ color:T.teal, textDecoration:'none', fontWeight:600 }}>Privacy Policy</a>.
+            </div>
           </div>
         </div>
       </div>

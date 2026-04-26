@@ -6,7 +6,9 @@ import ReadilyApp from './readily-app.jsx'
 import ReadilyLanding from './readily-landing.jsx'
 import LegalPage from './LegalPage.jsx'
 import InviteAccept from './InviteAccept.jsx'
+import ProviderDashboard from './ProviderDashboard.jsx'
 import PublicPassport from './PublicPassport.jsx'
+import ProviderDashboard from './ProviderDashboard.jsx'
 
 const DEMO_EMAIL = 'ablepamhc@gmail.com'
 
@@ -25,6 +27,8 @@ function Root() {
   const [session, setSession]   = useState(null)
   const [loading, setLoading]   = useState(true)
   const [hasChild, setHasChild] = useState(false)
+  const [isProvider, setIsProvider] = useState(false)
+  const [isProvider, setIsProvider] = useState(false)
   const [authMode, setAuthMode] = useState(null) // 'login' | 'signup' | null
   const [showLegal, setShowLegal] = useState(false)
 
@@ -73,6 +77,22 @@ function Root() {
         setLoading(false)
         return
       }
+
+      // Check if provider first (accepted invitations)
+      const { data: providerData } = await supabase
+        .from('invitations')
+        .select('id')
+        .eq('provider_id', session.user.id)
+        .eq('accepted', true)
+        .limit(1)
+
+      if (providerData && providerData.length > 0) {
+        setIsProvider(true)
+        setLoading(false)
+        return
+      }
+
+      // Check if family has a child
       const { data } = await supabase
         .from('children')
         .select('id')
@@ -122,8 +142,9 @@ function Root() {
     </div>
   )
 
-  // ── Logged in → show app ──
+  // ── Logged in → route based on user type ──
   if (session) {
+    if (isProvider) return <ProviderDashboard session={session} />
     return <ReadilyApp session={session} isNewUser={!hasChild} />
   }
 
