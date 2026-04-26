@@ -294,8 +294,42 @@ function PassportBuilder({ session, child, onSaved }) {
       if (saved) childId = saved.id;
     }
     if (childId && team.length > 0) {
-      const invRows = team.map(t=>({ child_id:childId, provider_email:t.email, access_level:t.access, can_chat:t.access==="full_access", accepted:false }));
-      await supabase.from("invitations").upsert(invRows, { onConflict:"child_id,provider_email" });
+      // Generate unique tokens for each invite
+      const invRows = team.map(t=>({
+        child_id: childId,
+        provider_email: t.email,
+        access_level: t.access,
+        can_chat: t.access==="full_access",
+        accepted: false,
+        invite_token: Math.random().toString(36).substring(2,10) + Math.random().toString(36).substring(2,10),
+        invited_at: new Date().toISOString(),
+      }));
+      const { data: savedInvites } = await supabase
+        .from("invitations")
+        .upsert(invRows, { onConflict:"child_id,provider_email" })
+        .select();
+
+      // Send invite emails
+      if (savedInvites) {
+        const familyName = session?.user?.email?.split('@')[0] || "A family";
+        for (const inv of savedInvites) {
+          if (!inv.accepted && inv.invite_token) {
+            try {
+              await fetch("/api/invite", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  providerEmail: inv.provider_email,
+                  providerRole: team.find(t=>t.email===inv.provider_email)?.role || "Provider",
+                  childName: d.name,
+                  familyName,
+                  inviteToken: inv.invite_token,
+                }),
+              });
+            } catch(e) { console.error("[Readily] Failed to send invite email:", e); }
+          }
+        }
+      }
     }
     setSaving(false);
     setSaved(true);

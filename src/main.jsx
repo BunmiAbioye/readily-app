@@ -5,6 +5,7 @@ import Auth from './Auth.jsx'
 import ReadilyApp from './readily-app.jsx'
 import ReadilyLanding from './readily-landing.jsx'
 import LegalPage from './LegalPage.jsx'
+import InviteAccept from './InviteAccept.jsx'
 import PublicPassport from './PublicPassport.jsx'
 
 const DEMO_EMAIL = 'ablepamhc@gmail.com'
@@ -105,6 +106,12 @@ function Root() {
   const passportMatch = window.location.pathname.match(/^\/passport\/([a-z0-9]+)$/i);
   if (passportMatch) {
     return <PublicPassport token={passportMatch[1]} />;
+  }
+
+  // ── Provider invite route — no auth needed ──
+  const inviteMatch = window.location.pathname.match(/^\/invite\/([a-zA-Z0-9_-]+)$/);
+  if (inviteMatch) {
+    return <InviteAccept token={inviteMatch[1]} onAuth={() => { window.location.href = '/'; }} />;
   }
 
   // ── Loading spinner ──
