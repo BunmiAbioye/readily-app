@@ -310,53 +310,47 @@ function PassportBuilder({ session, child, onSaved }) {
       if (saved) childId = saved.id;
     }
     if (childId && team.length > 0) {
-      // Generate unique tokens for each invite
-      // Only send invites to newly added members (not already in DB)
-      const { data: existingInvites } = await supabase.from("invitations").select("provider_email").eq("child_id", childId);
-      const existingEmails = (existingInvites||[]).map(i=>i.provider_email);
-      const newMembers = team.filter(t=>!existingEmails.includes(t.email));
-      const existingMembers = team.filter(t=>existingEmails.includes(t.email));
+      const familyName = session?.user?.email?.split('@')[0] || "A family";
 
-      // Update existing invitations
-      for (const t of existingMembers) {
-        await supabase.from("invitations").update({ access_level:t.access, can_chat:t.access==="full_access" }).eq("child_id", childId).eq("provider_email", t.email);
-      }
+      for (const t of team) {
+        // Generate a fresh token for every save — ensures email always goes out
+        const token = Math.random().toString(36).substring(2,10) + Math.random().toString(36).substring(2,10);
 
-      // Insert new invitations with tokens
-      const invRows = newMembers.map(t=>({
-        child_id: childId,
-        provider_email: t.email,
-        role: t.role,
-        access_level: t.access,
-        can_chat: t.access==="full_access",
-        accepted: false,
-        invite_token: Math.random().toString(36).substring(2,10) + Math.random().toString(36).substring(2,10),
-        invited_at: new Date().toISOString(),
-      }));
-      const { data: savedInvites } = await supabase
-        .from("invitations")
-        .upsert(invRows, { onConflict:"child_id,provider_email" })
-        .select();
+        // Upsert invitation
+        const { data: inv, error: invError } = await supabase
+          .from("invitations")
+          .upsert({
+            child_id: childId,
+            provider_email: t.email,
+            role: t.role,
+            access_level: t.access,
+            can_chat: t.access === "full_access",
+            accepted: false,
+            invite_token: token,
+            invited_at: new Date().toISOString(),
+          }, { onConflict: "child_id,provider_email" })
+          .select()
+          .single();
 
-      // Send invite emails to new members only
-      if (savedInvites) {
-        const familyName = session?.user?.email?.split('@')[0] || "A family";
-        for (const inv of savedInvites) {
-          if (inv.invite_token) {
-            try {
-              await fetch("/api/invite", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  providerEmail: inv.provider_email,
-                  providerRole: team.find(t=>t.email===inv.provider_email)?.role || "Provider",
-                  childName: d.name,
-                  familyName,
-                  inviteToken: inv.invite_token,
-                }),
-              });
-            } catch(e) { console.error("[Readily] Failed to send invite email:", e); }
-          }
+        console.log("[Readily] Invitation upsert:", inv, "error:", invError);
+
+        // Send invite email
+        if (!invError) {
+          try {
+            const emailRes = await fetch("/api/invite", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                providerEmail: t.email,
+                providerRole: t.role || "Provider",
+                childName: d.name,
+                familyName,
+                inviteToken: token,
+              }),
+            });
+            const emailData = await emailRes.json();
+            console.log("[Readily] Email result:", emailData);
+          } catch(e) { console.error("[Readily] Failed to send invite email:", e); }
         }
       }
     }
