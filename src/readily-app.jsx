@@ -497,13 +497,23 @@ function PassportBuilder({ session, child, onSaved }) {
     <div style={{ maxWidth:560, margin:"0 auto", width:"100%" }}>
       {showPHIConsent && <PHIConsentModal childName={d.name} onConfirm={async()=>{ setShowPHIConsent(false); await doSave(); }} onCancel={()=>setShowPHIConsent(false)} />}
       <div style={{ marginBottom:20 }}>
-        <div style={{ display:"flex", gap:6, marginBottom:16 }}>
-          {PASSPORT_STEPS.map((s,i)=><div key={s} style={{ height:4, flex:1, borderRadius:2, background:i<=step?T.teal:T.border, transition:"background 0.3s" }} />)}
-        </div>
-        <div style={{ fontSize:11, fontWeight:700, color:T.teal, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:4 }}>
-          {child?.id && step < 4 ? "EDITING · " : ""}{PASSPORT_STEPS[step]} {step < 4 ? `· Step ${step+1} of 4` : ""}
-        </div>
-        <h2 style={{ margin:0, fontSize:22, fontWeight:800, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>{child?.id && step===0 ? `Edit ${d.name||"Profile"}` : PASSPORT_STEPS[step]}</h2>
+        {child?.id ? (
+          /* Tab navigation for existing profiles */
+          <div style={{ display:"flex", gap:3, background:T.surface, borderRadius:10, padding:3, border:`1px solid ${T.border}`, overflowX:"auto" }}>
+            {PASSPORT_STEPS.map((s,i)=>(
+              <button key={s} onClick={()=>setStep(i)} style={{ flex:1, minWidth:60, padding:"7px 8px", borderRadius:7, border:"none", background:step===i?T.white:"transparent", color:step===i?T.ink:T.ink3, fontFamily:"'DM Sans',sans-serif", fontWeight:step===i?700:500, fontSize:12, cursor:"pointer", whiteSpace:"nowrap", boxShadow:step===i?"0 1px 4px rgba(0,0,0,0.08)":"none", transition:"all 0.15s" }}>{s}</button>
+            ))}
+          </div>
+        ) : (
+          /* Progress bar for new profiles */
+          <div>
+            <div style={{ display:"flex", gap:6, marginBottom:12 }}>
+              {PASSPORT_STEPS.map((s,i)=><div key={s} style={{ height:4, flex:1, borderRadius:2, background:i<=step?T.teal:T.border, transition:"background 0.3s" }} />)}
+            </div>
+            <div style={{ fontSize:11, fontWeight:700, color:T.teal, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:4 }}>Step {step+1} of {PASSPORT_STEPS.length} · {PASSPORT_STEPS[step]}</div>
+          </div>
+        )}
+        <h2 style={{ margin:"10px 0 0", fontSize:20, fontWeight:800, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>{PASSPORT_STEPS[step]}</h2>
       </div>
       <div style={{ background:T.white, borderRadius:16, padding:24, border:`1px solid ${T.border}`, boxShadow:"0 2px 12px rgba(0,0,0,0.05)", marginBottom:16 }}>
         {pages[step]}
