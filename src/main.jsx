@@ -8,7 +8,6 @@ import LegalPage from './LegalPage.jsx'
 import InviteAccept from './InviteAccept.jsx'
 import ProviderDashboard from './ProviderDashboard.jsx'
 import PublicPassport from './PublicPassport.jsx'
-import ProviderDashboard from './ProviderDashboard.jsx'
 
 const DEMO_EMAIL = 'ablepamhc@gmail.com'
 
