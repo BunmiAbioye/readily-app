@@ -52,20 +52,14 @@ export default function InviteAccept({ token, onAuth }) {
   }, [token])
 
   const acceptInvitation = async (userId, userEmail) => {
-    // Update invitation with provider_id and mark accepted
-    await supabase.from('invitations').update({
-      provider_id: userId,
-      accepted: true,
-      accepted_at: new Date().toISOString(),
-    }).eq('invite_token', token)
-
-    // Ensure provider record exists
-    await supabase.from('providers').upsert({
-      id: userId,
-      email: userEmail,
-      name: name || userEmail.split('@')[0],
-      role: invite?.role || 'Provider',
+    // Use security definer function to bypass RLS timing issues
+    const { error } = await supabase.rpc('accept_invitation', {
+      p_token: token,
+      p_provider_id: userId,
+      p_provider_email: userEmail,
+      p_provider_name: name || userEmail.split('@')[0],
     })
+    if (error) console.error('[Readily] Accept invitation error:', error)
   }
 
   const handleSubmit = async () => {
