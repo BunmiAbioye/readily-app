@@ -95,7 +95,7 @@ export default async function handler(req) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Readily <hello@ablepam.ca>',
+        from: 'Readily <contact@ablepam.ca>',
         to: [providerEmail],
         subject: `You've been invited to ${childName}'s care team on Readily`,
         html,

@@ -220,11 +220,22 @@ function PassportBuilder({ session, child, onSaved }) {
   // Load existing share token on mount (for existing profiles)
   useEffect(() => {
     if (!child?.id || isDemo) return;
-    console.log("[Readily] Loading share token for child:", child.id);
+
+    // Load existing share token
     supabase.from("passport_shares").select("token").eq("child_id", child.id).eq("active", true).maybeSingle()
-      .then(({ data, error }) => {
-        console.log("[Readily] Share token result:", data, "error:", error);
-        if (data?.token) setShareUrl(`${window.location.origin}/passport/${data.token}`);
+      .then(({ data }) => { if (data?.token) setShareUrl(`${window.location.origin}/passport/${data.token}`); });
+
+    // Load existing invitations
+    supabase.from("invitations").select("provider_email, access_level, can_chat, accepted, role").eq("child_id", child.id)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setTeam(data.map(inv => ({
+            email: inv.provider_email,
+            role: inv.role || "Provider",
+            access: inv.access_level || "session_log",
+            accepted: inv.accepted,
+          })));
+        }
       });
   }, [child?.id]);
 
@@ -270,7 +281,12 @@ function PassportBuilder({ session, child, onSaved }) {
     setInviteEmail("");
   };
 
-  const removeFromTeam = (email) => setTeam(prev=>prev.filter(t=>t.email!==email));
+  const removeFromTeam = async (email) => {
+    setTeam(prev=>prev.filter(t=>t.email!==email));
+    if (child?.id) {
+      await supabase.from("invitations").delete().eq("child_id", child.id).eq("provider_email", email);
+    }
+  };
   const inp = { width:"100%", padding:"10px 12px", borderRadius:"8px", border:`1.5px solid ${T.border}`, fontFamily:"'DM Sans',sans-serif", fontSize:"14px", color:T.ink, background:T.white, boxSizing:"border-box" };
 
   const handleSave = async () => {
@@ -295,9 +311,22 @@ function PassportBuilder({ session, child, onSaved }) {
     }
     if (childId && team.length > 0) {
       // Generate unique tokens for each invite
-      const invRows = team.map(t=>({
+      // Only send invites to newly added members (not already in DB)
+      const { data: existingInvites } = await supabase.from("invitations").select("provider_email").eq("child_id", childId);
+      const existingEmails = (existingInvites||[]).map(i=>i.provider_email);
+      const newMembers = team.filter(t=>!existingEmails.includes(t.email));
+      const existingMembers = team.filter(t=>existingEmails.includes(t.email));
+
+      // Update existing invitations
+      for (const t of existingMembers) {
+        await supabase.from("invitations").update({ access_level:t.access, can_chat:t.access==="full_access" }).eq("child_id", childId).eq("provider_email", t.email);
+      }
+
+      // Insert new invitations with tokens
+      const invRows = newMembers.map(t=>({
         child_id: childId,
         provider_email: t.email,
+        role: t.role,
         access_level: t.access,
         can_chat: t.access==="full_access",
         accepted: false,
@@ -309,11 +338,11 @@ function PassportBuilder({ session, child, onSaved }) {
         .upsert(invRows, { onConflict:"child_id,provider_email" })
         .select();
 
-      // Send invite emails
+      // Send invite emails to new members only
       if (savedInvites) {
         const familyName = session?.user?.email?.split('@')[0] || "A family";
         for (const inv of savedInvites) {
-          if (!inv.accepted && inv.invite_token) {
+          if (inv.invite_token) {
             try {
               await fetch("/api/invite", {
                 method: "POST",
@@ -407,13 +436,18 @@ function PassportBuilder({ session, child, onSaved }) {
         </div>
       )}
       {team.map((t,i)=>(
-        <div key={t.email} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:T.white, border:`1px solid ${T.border}`, borderRadius:10, marginBottom:6 }}>
+        <div key={t.email} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 14px", background:T.white, border:`1px solid ${t.accepted?T.green+"44":T.border}`, borderRadius:10, marginBottom:6 }}>
           <div style={{ width:32, height:32, borderRadius:"50%", background:`hsl(${i*60+180},55%,88%)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:800, color:`hsl(${i*60+180},55%,30%)`, flexShrink:0 }}>{t.email[0].toUpperCase()}</div>
           <div style={{ flex:1 }}>
             <div style={{ fontSize:13, fontWeight:600, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>{t.email}</div>
             <div style={{ fontSize:11, color:T.ink3, fontFamily:"'DM Sans',sans-serif" }}>{t.role} · {ACCESS_LEVELS.find(a=>a.id===t.access)?.label}</div>
           </div>
-          <button onClick={()=>removeFromTeam(t.email)} style={{ background:"none", border:"none", color:T.ink4, cursor:"pointer", fontSize:16 }}>×</button>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontSize:10, fontWeight:700, color:t.accepted?T.green:T.amber, fontFamily:"'DM Sans',sans-serif", whiteSpace:"nowrap" }}>
+              {t.accepted ? "✓ Accepted" : "⏳ Pending"}
+            </span>
+            <button onClick={()=>removeFromTeam(t.email)} style={{ background:"none", border:"none", color:T.ink4, cursor:"pointer", fontSize:16 }}>×</button>
+          </div>
         </div>
       ))}
     </div>,
