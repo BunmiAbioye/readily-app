@@ -147,14 +147,60 @@ function SessionLogForm({ child, session: authSession, onLogged }) {
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSaving(true);
+    const sessionDate = new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
     const { error } = await supabase.from("sessions").insert({
       child_id: child.id, provider_id: authSession.user.id,
       date: new Date().toISOString().slice(0,10),
       response, focus_areas:focus, win, challenge, for_family:forFamily,
     });
+    if (!error) {
+      // Send email notification to parent
+      try {
+        // Get family info - two separate queries to avoid join RLS issues
+        const { data: childRow } = await supabase
+          .from("children")
+          .select("family_id")
+          .eq("id", child.id)
+          .maybeSingle();
+
+        let familyEmail = null, familyName = null;
+        if (childRow?.family_id) {
+          const { data: familyRow } = await supabase
+            .from("families")
+            .select("email, name")
+            .eq("id", childRow.family_id)
+            .maybeSingle();
+          familyEmail = familyRow?.email;
+          familyName = familyRow?.name;
+        }
+
+        if (familyEmail) {
+          const providerName = authSession.user.user_metadata?.full_name || authSession.user.email?.split("@")[0] || "Your provider";
+          await fetch("/api/notify-parent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              parentEmail: familyEmail,
+              parentName: familyName || "Parent",
+              childName: child.name,
+              providerName,
+              providerRole: child.inviteRole || "Provider",
+              sessionDate,
+              response,
+              win,
+              forFamily,
+              appUrl: "https://readily.ablepam.ca",
+            }),
+          });
+        }
+      } catch(e) { console.error("[Readily] Parent notification error:", e); }
+
+      setDone(true);
+      setTimeout(()=>{ setDone(false); setFocus([]); setResponse(""); setWin(""); setChallenge(""); setForFamily(""); onLogged&&onLogged(); }, 1500);
+    } else {
+      console.error("[Readily] Session log error:", error);
+    }
     setSaving(false);
-    if (!error) { setDone(true); setTimeout(()=>{ setDone(false); setFocus([]); setResponse(""); setWin(""); setChallenge(""); setForFamily(""); onLogged&&onLogged(); }, 1500); }
-    else console.error("[Readily] Session log error:", error);
   };
 
   if (done) return (
@@ -293,15 +339,35 @@ export default function ProviderDashboard({ session }) {
   const providerName = session?.user?.user_metadata?.full_name || session?.user?.email?.split("@")[0] || "Provider";
 
   useEffect(()=>{
-    supabase.from("invitations")
-      .select("child_id, role, access_level, children(*)")
-      .eq("provider_id", session.user.id)
-      .eq("accepted", true)
-      .then(({ data, error }) => {
-        console.log("[Readily] Provider invites:", data, error);
-        if (data?.length > 0) setChildren(data.map(inv=>({ ...inv.children, inviteRole:inv.role, accessLevel:inv.access_level })));
-        setLoading(false);
-      });
+    const load = async () => {
+      try {
+        // Step 1: get accepted invitations for this provider
+        const { data: invites, error: invErr } = await supabase
+          .from("invitations")
+          .select("child_id, role, access_level")
+          .eq("provider_id", session.user.id)
+          .eq("accepted", true);
+
+        console.log("[Readily] Provider invites:", invites, invErr);
+        if (!invites?.length) { setLoading(false); return; }
+
+        // Step 2: fetch each child individually (bypasses join RLS issue)
+        const childIds = invites.map(i => i.child_id);
+        const { data: childData } = await supabase
+          .from("children")
+          .select("*")
+          .in("id", childIds);
+
+        if (childData) {
+          setChildren(childData.map(c => {
+            const inv = invites.find(i => i.child_id === c.id);
+            return { ...c, inviteRole: inv?.role, accessLevel: inv?.access_level };
+          }));
+        }
+      } catch(e) { console.error(e); }
+      finally { setLoading(false); }
+    };
+    load();
   }, [session?.user?.id]);
 
   if (loading) return (

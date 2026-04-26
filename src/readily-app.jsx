@@ -1399,18 +1399,46 @@ export default function ReadilyApp({ session }) {
           const c = children[0];
           setChild(c);
 
-          const { data: sessionData } = await supabase.from("sessions").select("*, providers(name, role)").eq("child_id", c.id).order("date", { ascending:false }).limit(20);
+          // Load sessions - simple query without complex joins
+          const { data: sessionData } = await supabase
+            .from("sessions")
+            .select("*")
+            .eq("child_id", c.id)
+            .order("date", { ascending:false })
+            .limit(20);
+
+          // Load invitations for provider name/role lookup
+          const { data: invites } = await supabase
+            .from("invitations")
+            .select("provider_id, provider_email, role")
+            .eq("child_id", c.id);
+          const inviteMap = {};
+          if (invites) invites.forEach(inv => { if (inv.provider_id) inviteMap[inv.provider_id] = inv; });
+
+          // Load providers table for names
+          const { data: providerList } = await supabase
+            .from("providers")
+            .select("id, name, role");
+          const providerMap = {};
+          if (providerList) providerList.forEach(p => { providerMap[p.id] = p; });
+
           if (sessionData) {
-            setSessions(sessionData.map(s => ({
-              provider: s.providers?.name || "Provider",
-              role: s.providers?.role || "Provider",
-              date: new Date(s.date).toLocaleDateString("en-US", {weekday:"short",month:"short",day:"numeric"}),
-              response: s.response || "Good",
-              focusAreas: s.focus_areas || [],
-              win: s.win || "",
-              challenge: s.challenge || "",
-              forFamily: s.for_family || "",
-            })));
+            setSessions(sessionData.map(s => {
+              const prov = providerMap[s.provider_id];
+              const inv = inviteMap[s.provider_id];
+              const providerName = prov?.name || inv?.provider_email?.split("@")[0] || "Provider";
+              const providerRole = prov?.role || inv?.role || "Provider";
+              return {
+                provider: providerName,
+                role: providerRole,
+                date: new Date(s.date).toLocaleDateString("en-US", {weekday:"short",month:"short",day:"numeric"}),
+                response: s.response || "Good",
+                focusAreas: s.focus_areas || [],
+                win: s.win || "",
+                challenge: s.challenge || "",
+                forFamily: s.for_family || "",
+              };
+            }));
           }
 
           const { data: goalData } = await supabase.from("family_goals").select("*").eq("child_id", c.id);
