@@ -1082,7 +1082,7 @@ function Dashboard({ setPage, child, sessions, goals, therapies }) {
     return {label:"Mixed week",color:T.amber,bg:T.amberL,emoji:"↕️"};
   })();
   const weekOop = therapies.reduce((sum,t)=>{ const cov=COVERAGE_OPTIONS.find(c=>c.id===t.coverage)||COVERAGE_OPTIONS[3]; return sum+(t.costPerSession*(1-cov.pct/100)*(sessPerMo(t.frequency,t.freqUnit)/4.33)); },0);
-  const childName = child?.name || "Your child";
+  const childName = child?.name || "your child";
   const initial = childName[0]?.toUpperCase() || "?";
 
   return (
@@ -1399,13 +1399,14 @@ export default function ReadilyApp({ session }) {
           const c = children[0];
           setChild(c);
 
-          // Load sessions - simple query without complex joins
-          const { data: sessionData } = await supabase
+          // Load sessions - only if child exists
+          const { data: sessionData, error: sessErr } = await supabase
             .from("sessions")
             .select("*")
             .eq("child_id", c.id)
             .order("date", { ascending:false })
             .limit(20);
+          if (sessErr) console.error("[Readily] Sessions load error:", sessErr.message);
 
           // Load invitations for provider name/role lookup
           const { data: invites } = await supabase

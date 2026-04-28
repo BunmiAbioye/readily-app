@@ -156,23 +156,13 @@ function SessionLogForm({ child, session: authSession, onLogged }) {
     if (!error) {
       // Send email notification to parent
       try {
-        // Get family info - two separate queries to avoid join RLS issues
-        const { data: childRow } = await supabase
-          .from("children")
-          .select("family_id")
-          .eq("id", child.id)
-          .maybeSingle();
+        // Get family info via RPC to bypass RLS
+        const { data: familyInfo, error: famErr } = await supabase
+          .rpc('get_family_for_child', { p_child_id: child.id });
+        console.log("[Readily] Family info:", familyInfo, famErr);
 
-        let familyEmail = null, familyName = null;
-        if (childRow?.family_id) {
-          const { data: familyRow } = await supabase
-            .from("families")
-            .select("email, name")
-            .eq("id", childRow.family_id)
-            .maybeSingle();
-          familyEmail = familyRow?.email;
-          familyName = familyRow?.name;
-        }
+        const familyEmail = familyInfo?.[0]?.email;
+        const familyName = familyInfo?.[0]?.name;
 
         if (familyEmail) {
           const providerName = authSession.user.user_metadata?.full_name || authSession.user.email?.split("@")[0] || "Your provider";
