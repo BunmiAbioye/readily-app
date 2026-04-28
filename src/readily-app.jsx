@@ -867,6 +867,16 @@ function CostEstimatorScreen({ child, therapies: initialTherapies, onTherapiesCh
   const [therapies, setTherapies] = useState(initialTherapies||[]);
   const [expanded, setExpanded] = useState(null);
   const [view, setView] = useState("list");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newType, setNewType] = useState("Speech Therapy");
+  const [newProvider, setNewProvider] = useState("");
+
+  const THERAPY_TYPES = [
+    "Speech Therapy","ABA Therapy","Occupational Therapy",
+    "Physical Therapy","Applied Behaviour Analysis","Special Education",
+    "Feeding Therapy","Music Therapy","Art Therapy",
+    "Behavioural Therapy","Social Skills Training","Other"
+  ];
 
   useEffect(()=>{ setTherapies(initialTherapies||[]); },[initialTherapies]);
 
@@ -876,13 +886,14 @@ function CostEstimatorScreen({ child, therapies: initialTherapies, onTherapiesCh
     const updated=therapies.filter(t=>t.id!==id); setTherapies(updated); onTherapiesChange&&onTherapiesChange(updated);
   };
   const add = async () => {
-    const newT={type:"Speech Therapy",provider:"",frequency:1,freqUnit:"week",costPerSession:150,coverage:"none",startDate:new Date().toISOString().slice(0,10),endDate:new Date(Date.now()+365*86400000).toISOString().slice(0,10)};
+    const newT={type:newType,provider:newProvider,frequency:1,freqUnit:"week",costPerSession:150,coverage:"none",startDate:new Date().toISOString().slice(0,10),endDate:new Date(Date.now()+365*86400000).toISOString().slice(0,10)};
     if (child?.id) {
       const { data } = await supabase.from("therapies").insert({ child_id:child.id, type:newT.type, provider_name:newT.provider, frequency:newT.frequency, freq_unit:newT.freqUnit, cost_per_session:newT.costPerSession, coverage:newT.coverage, start_date:newT.startDate, end_date:newT.endDate }).select().single();
       if (data) { const updated=[...therapies,{...newT,id:data.id}]; setTherapies(updated); setExpanded(data.id); }
     } else {
       const id=Date.now(); const updated=[...therapies,{...newT,id}]; setTherapies(updated); setExpanded(id);
     }
+    setShowAddForm(false); setNewType("Speech Therapy"); setNewProvider("");
   };
 
   const calcs=useMemo(()=>therapies.map(t=>({...t,...calcT(t)})),[therapies]);
@@ -945,6 +956,7 @@ function CostEstimatorScreen({ child, therapies: initialTherapies, onTherapiesCh
                   <div style={{ width:10, height:10, borderRadius:"50%", background:col, flexShrink:0 }} />
                   <div style={{ flex:1 }}><div style={{ fontWeight:700, fontSize:13, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>{t.type}</div><div style={{ fontSize:11, color:T.ink3, fontFamily:"'DM Sans',sans-serif" }}>{t.provider||"—"} · {t.frequency}×/{t.freqUnit} · {fmt$(t.costPerSession)}/session</div></div>
                   <div style={{ textAlign:"right" }}><div style={{ fontSize:15, fontWeight:800, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>{fmt$(c.outOfPocket)}</div><div style={{ fontSize:10, color:T.ink4, fontFamily:"'DM Sans',sans-serif" }}>out of pocket</div></div>
+                  <button onClick={e=>{ e.stopPropagation(); if(window.confirm(`Delete ${t.type}?`)) remove(t.id); }} style={{ background:"none", border:"none", color:T.ink4, cursor:"pointer", fontSize:16, padding:"2px 4px", flexShrink:0 }} title="Delete">🗑</button>
                   <span style={{ color:T.ink3, fontSize:10, transform:expanded===t.id?"rotate(180deg)":"rotate(0)", transition:"transform 0.2s", display:"inline-block" }}>▼</span>
                 </div>
                 {expanded===t.id&&(
@@ -969,13 +981,35 @@ function CostEstimatorScreen({ child, therapies: initialTherapies, onTherapiesCh
                         </div>
                       ))}
                     </div>
-                    <button onClick={()=>remove(t.id)} style={{ marginTop:10, padding:"5px 12px", background:"none", border:`1px solid ${T.border}`, borderRadius:7, color:T.ink4, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:11, cursor:"pointer" }}>Remove</button>
+                    <button onClick={()=>{ if(window.confirm(`Remove ${t.type}? This cannot be undone.`)) remove(t.id); }} style={{ marginTop:10, padding:"7px 14px", background:"#fff1f2", border:`1px solid ${T.rose}44`, borderRadius:7, color:T.rose, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:12, cursor:"pointer" }}>🗑 Delete therapy</button>
                   </div>
                 )}
               </div>
             );
           })}
-          <button onClick={add} style={{ width:"100%", padding:12, background:T.white, border:`2px dashed ${T.border2}`, borderRadius:10, color:T.indigo, fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>+ Add therapy</button>
+          {showAddForm ? (
+            <div style={{ background:T.white, border:`1.5px solid ${T.indigo}44`, borderRadius:12, padding:"16px" }}>
+              <div style={{ fontSize:11, fontWeight:700, color:T.indigo, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", textTransform:"uppercase", marginBottom:12 }}>Add Therapy</div>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:10, marginBottom:12 }}>
+                <div>
+                  <label style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>THERAPY TYPE</label>
+                  <select value={newType} onChange={e=>setNewType(e.target.value)} style={{ width:"100%", padding:"9px 10px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink, boxSizing:"border-box" }}>
+                    {THERAPY_TYPES.map(t=><option key={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>PROVIDER NAME (optional)</label>
+                  <input type="text" value={newProvider} onChange={e=>setNewProvider(e.target.value)} placeholder="e.g. Dr. Sarah Chen" style={{ width:"100%", padding:"9px 10px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink, boxSizing:"border-box" }} />
+                </div>
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={()=>{ setShowAddForm(false); setNewType("Speech Therapy"); setNewProvider(""); }} style={{ padding:"9px 16px", background:T.white, border:`1.5px solid ${T.border}`, borderRadius:8, color:T.ink3, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:"pointer" }}>Cancel</button>
+                <button onClick={add} style={{ flex:1, padding:"9px", background:`linear-gradient(135deg,${T.indigo},#6366f1)`, border:"none", borderRadius:8, color:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:13, cursor:"pointer" }}>Add {newType} →</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={()=>setShowAddForm(true)} style={{ width:"100%", padding:12, background:T.white, border:`2px dashed ${T.border2}`, borderRadius:10, color:T.indigo, fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:13, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>+ Add therapy</button>
+          )}
         </>
       )}
     </div>
