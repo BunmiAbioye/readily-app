@@ -1619,6 +1619,9 @@ export default function ReadilyApp({ session }) {
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
               <div style={{ width:30, height:30, borderRadius:"50%", background:`linear-gradient(135deg,${T.teal},${T.indigo})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:800, color:"#fff" }}>{initial}</div>
               {!isMobile && <span style={{ fontSize:13, fontWeight:600, color:isProvider?"#8b9cc8":T.ink2, fontFamily:"'DM Sans',sans-serif" }}>{displayName}</span>}
+              {isMobile && !isDemo && (
+                <button onClick={async()=>{ await supabase.auth.signOut(); window.location.reload(); }} style={{ padding:"5px 10px", background:"transparent", border:`1px solid ${isProvider?"rgba(255,255,255,0.15)":T.border}`, borderRadius:6, color:isProvider?"rgba(255,255,255,0.5)":T.ink3, fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, cursor:"pointer" }}>Sign out</button>
+              )}
             </div>
           </div>
           <div key={page} style={{ flex:1, overflowY:"auto", padding:isMobile?"16px 14px 80px":"28px 24px 48px", background:isProvider?"#0e1117":T.bg, animation:"fadeIn 0.25s ease both" }}>
