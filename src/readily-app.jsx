@@ -880,7 +880,28 @@ function CostEstimatorScreen({ child, therapies: initialTherapies, onTherapiesCh
 
   useEffect(()=>{ setTherapies(initialTherapies||[]); },[initialTherapies]);
 
-  const updateLocal = (id,key,val) => setTherapies(ts=>ts.map(t=>t.id===id?{...t,[key]:val}:t));
+  const updateLocal = (id, key, val) => {
+    setTherapies(ts => ts.map(t => t.id === id ? {...t, [key]: val} : t));
+  };
+
+  // Save a single field to Supabase after user finishes editing
+  const saveField = async (id, key, val) => {
+    if (!child?.id) return;
+    // Map frontend key names to database column names
+    const colMap = {
+      type: "type", provider: "provider_name", frequency: "frequency",
+      freqUnit: "freq_unit", costPerSession: "cost_per_session",
+      coverage: "coverage", startDate: "start_date", endDate: "end_date",
+    };
+    const col = colMap[key];
+    if (!col) return;
+    await supabase.from("therapies").update({ [col]: val }).eq("id", id);
+  };
+
+  const updateAndSave = (id, key, val) => {
+    updateLocal(id, key, val);
+    saveField(id, key, val);
+  };
   const remove = async (id) => {
     if (child?.id) await supabase.from("therapies").delete().eq("id",id);
     const updated=therapies.filter(t=>t.id!==id); setTherapies(updated); onTherapiesChange&&onTherapiesChange(updated);
@@ -962,14 +983,14 @@ function CostEstimatorScreen({ child, therapies: initialTherapies, onTherapiesCh
                 {expanded===t.id&&(
                   <div style={{ padding:"0 16px 16px", borderTop:`1px solid ${T.border}` }}>
                     <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:10, marginTop:14 }}>
-                      <div><label style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>FREQUENCY</label><div style={{ display:"flex", gap:5 }}><input type="number" value={t.frequency} min="1" onChange={e=>updateLocal(t.id,"frequency",e.target.value)} style={{ width:60, padding:"8px 8px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink }} /><select value={t.freqUnit} onChange={e=>updateLocal(t.id,"freqUnit",e.target.value)} style={{ flex:1, padding:"8px 8px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.ink }}><option value="week">per week</option><option value="month">per month</option><option value="year">per year</option></select></div></div>
-                      <div><label style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>COST/SESSION</label><div style={{ position:"relative" }}><span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:T.ink3, fontSize:13 }}>$</span><input type="number" value={t.costPerSession} min="0" onChange={e=>updateLocal(t.id,"costPerSession",e.target.value)} style={{ width:"100%", padding:"8px 10px 8px 22px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink, boxSizing:"border-box" }} /></div></div>
-                      <div><label style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>START</label><input type="date" value={t.startDate||""} onChange={e=>updateLocal(t.id,"startDate",e.target.value)} style={{ width:"100%", padding:"8px 10px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink, boxSizing:"border-box" }} /></div>
-                      <div><label style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>END</label><input type="date" value={t.endDate||""} onChange={e=>updateLocal(t.id,"endDate",e.target.value)} style={{ width:"100%", padding:"8px 10px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink, boxSizing:"border-box" }} /></div>
+                      <div><label style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>FREQUENCY</label><div style={{ display:"flex", gap:5 }}><input type="number" value={t.frequency} min="1" onChange={e=>updateLocal(t.id,"frequency",e.target.value)} onBlur={e=>saveField(t.id,"frequency",e.target.value)} style={{ width:60, padding:"8px 8px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink }} /><select value={t.freqUnit} onChange={e=>updateAndSave(t.id,"freqUnit",e.target.value)} style={{ flex:1, padding:"8px 8px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.ink }}><option value="week">per week</option><option value="month">per month</option><option value="year">per year</option></select></div></div>
+                      <div><label style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>COST/SESSION</label><div style={{ position:"relative" }}><span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:T.ink3, fontSize:13 }}>$</span><input type="number" value={t.costPerSession} min="0" onChange={e=>updateLocal(t.id,"costPerSession",e.target.value)} onBlur={e=>saveField(t.id,"costPerSession",e.target.value)} style={{ width:"100%", padding:"8px 10px 8px 22px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink, boxSizing:"border-box" }} /></div></div>
+                      <div><label style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>START</label><input type="date" value={t.startDate||""} onChange={e=>updateLocal(t.id,"startDate",e.target.value)} onBlur={e=>saveField(t.id,"startDate",e.target.value)} style={{ width:"100%", padding:"8px 10px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink, boxSizing:"border-box" }} /></div>
+                      <div><label style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>END</label><input type="date" value={t.endDate||""} onChange={e=>updateLocal(t.id,"endDate",e.target.value)} onBlur={e=>saveField(t.id,"endDate",e.target.value)} style={{ width:"100%", padding:"8px 10px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink, boxSizing:"border-box" }} /></div>
                       <div style={{ gridColumn:"1/-1" }}>
                         <label style={{ fontSize:10, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:7 }}>INSURANCE COVERAGE</label>
                         <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                          {COVERAGE_OPTIONS.map(opt=><button key={opt.id} onClick={()=>updateLocal(t.id,"coverage",opt.id)} style={{ padding:"5px 12px", borderRadius:20, border:t.coverage===opt.id?`2px solid ${opt.color}`:`1.5px solid ${T.border}`, background:t.coverage===opt.id?opt.color+"15":T.white, color:t.coverage===opt.id?opt.color:T.ink3, fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, cursor:"pointer" }}>{opt.label}</button>)}
+                          {COVERAGE_OPTIONS.map(opt=><button key={opt.id} onClick={()=>updateAndSave(t.id,"coverage",opt.id)} style={{ padding:"5px 12px", borderRadius:20, border:t.coverage===opt.id?`2px solid ${opt.color}`:`1.5px solid ${T.border}`, background:t.coverage===opt.id?opt.color+"15":T.white, color:t.coverage===opt.id?opt.color:T.ink3, fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, cursor:"pointer" }}>{opt.label}</button>)}
                         </div>
                       </div>
                     </div>
