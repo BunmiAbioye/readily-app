@@ -59,6 +59,14 @@ function WaitlistForm({ dark = false, size = "default" }) {
         console.error("[Readily] Waitlist error:", sbError);
         throw sbError;
       }
+      // Send welcome email with signup link
+      try {
+        await fetch("/api/waitlist-welcome", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim().toLowerCase(), role }),
+        });
+      } catch(e) { console.error("[Readily] Welcome email error:", e); }
       setDone(true);
     } catch (e) {
       console.error("[Readily] Waitlist catch:", e);
@@ -75,8 +83,16 @@ function WaitlistForm({ dark = false, size = "default" }) {
   if (done) return (
     <div style={{ padding: "20px 24px", background: dark ? "rgba(13,148,136,0.15)" : C.tealL, borderRadius: 14, border: `1px solid ${dark ? C.teal+"55" : C.teal+"44"}`, textAlign: "center" }}>
       <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: dark ? "#fff" : C.tealD, fontFamily: "'Outfit', sans-serif", marginBottom: 4 }}>You're on the list!</div>
-      <div style={{ fontSize: 13, color: dark ? "rgba(255,255,255,0.55)" : C.ink3, fontFamily: "'Outfit', sans-serif", lineHeight: 1.5 }}>We'll reach out personally to set up your child's profile. Check your inbox.</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: dark ? "#fff" : C.tealD, fontFamily: "'Outfit', sans-serif", marginBottom: 6 }}>You're on the list!</div>
+      <div style={{ fontSize: 13, color: dark ? "rgba(255,255,255,0.6)" : C.ink3, fontFamily: "'Outfit', sans-serif", lineHeight: 1.6, marginBottom: 16 }}>
+        Good news — Readily is ready for you right now. Create your account and start building your child's profile today.
+      </div>
+      <a href="?auth=signup" style={{ display:"block", padding:"12px 20px", background:`linear-gradient(135deg,${C.teal},${C.tealD})`, borderRadius:10, color:"#fff", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, textDecoration:"none", marginBottom:10 }}>
+        Create your account now →
+      </a>
+      <div style={{ fontSize:11, color: dark ? "rgba(255,255,255,0.35)" : C.ink4, fontFamily:"'Outfit',sans-serif" }}>
+        Already have an account? <a href="?auth=login" style={{ color:C.teal, textDecoration:"none", fontWeight:600 }}>Log in →</a>
+      </div>
     </div>
   );
 
