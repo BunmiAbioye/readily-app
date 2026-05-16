@@ -520,11 +520,17 @@ function PassportBuilder({ session, child, onSaved }) {
       </div>
       <div style={{ display:"flex", gap:10 }}>
         {step>0&&<button onClick={()=>setStep(s=>s-1)} style={{ padding:"11px 20px", background:T.white, border:`1.5px solid ${T.border}`, borderRadius:10, color:T.ink2, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:14, cursor:"pointer" }}>← Back</button>}
-        {step<PASSPORT_STEPS.length-1
-          ? <button onClick={()=>setStep(s=>s+1)} style={{ flex:1, padding:"11px 20px", background:`linear-gradient(135deg,${T.teal},${T.tealD})`, border:"none", borderRadius:10, color:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:14, cursor:"pointer" }}>Continue →</button>
-          : <button onClick={handleSave} disabled={saving||saved} style={{ flex:1, padding:"11px 20px", background:saved?T.green:saving?T.surface:`linear-gradient(135deg,${T.indigo},${T.violet})`, border:"none", borderRadius:10, color:saving?T.ink3:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:14, cursor:saving||saved?"not-allowed":"pointer", transition:"all 0.3s" }}>
-              {saved ? "✓ Saved!" : saving ? "Saving…" : isDemo ? "📤 Share Profile (Demo)" : child?.id ? "💾 Save Changes" : "💾 Save Profile"}
-            </button>}
+        {step<PASSPORT_STEPS.length-1 && (
+          <button onClick={()=>setStep(s=>s+1)} style={{ flex:1, padding:"11px 20px", background:`linear-gradient(135deg,${T.teal},${T.tealD})`, border:"none", borderRadius:10, color:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:14, cursor:"pointer" }}>
+            {child?.id ? "Next →" : "Continue →"}
+          </button>
+        )}
+        {/* Show Save on last step always, and on all steps when editing existing profile */}
+        {(step===PASSPORT_STEPS.length-1 || child?.id) && (
+          <button onClick={handleSave} disabled={saving||saved} style={{ flex:step===PASSPORT_STEPS.length-1?1:0, padding:"11px 20px", background:saved?T.green:saving?T.surface:`linear-gradient(135deg,${T.indigo},${T.violet})`, border:"none", borderRadius:10, color:saving?T.ink3:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:14, cursor:saving||saved?"not-allowed":"pointer", transition:"all 0.3s", whiteSpace:"nowrap" }}>
+            {saved ? "✓ Saved!" : saving ? "Saving…" : isDemo ? "📤 Share Profile (Demo)" : child?.id && step<PASSPORT_STEPS.length-1 ? "💾 Save" : "💾 Save Profile"}
+          </button>
+        )}
       </div>
     </div>
   );
