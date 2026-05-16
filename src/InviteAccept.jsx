@@ -74,17 +74,30 @@ export default function InviteAccept({ token, onAuth }) {
         const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
         if (error) throw error
         await acceptInvitation(data.user.id, data.user.email)
+        setAccepted(true)
+        // Small delay to ensure DB write completes before main.jsx checks
+        setTimeout(() => { window.location.href = '/'; }, 2500)
       } else {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(), password,
           options: { data: { full_name: name.trim() } }
         })
         if (error) throw error
-        if (data.user) await acceptInvitation(data.user.id, data.user.email)
+        if (data.user) {
+          // Wait for acceptInvitation to fully complete before redirecting
+          await acceptInvitation(data.user.id, data.user.email)
+          // Verify it worked
+          const { data: check } = await supabase
+            .from('invitations')
+            .select('accepted, provider_id')
+            .eq('invite_token', token)
+            .maybeSingle()
+          console.log('[Readily] Invitation after accept:', check)
+          setAccepted(true)
+          // Longer delay to ensure DB write propagates before main.jsx checkChild runs
+          setTimeout(() => { window.location.href = '/'; }, 3000)
+        }
       }
-      setAccepted(true)
-      // Redirect to app after 2 seconds — main.jsx will detect provider and route correctly
-      setTimeout(() => { window.location.href = '/'; }, 2000)
     } catch(e) {
       if (e.message?.includes('Invalid login')) setAuthError('Incorrect email or password.')
       else if (e.message?.includes('already registered')) setAuthError('An account with this email exists. Try logging in.')
