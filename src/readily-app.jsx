@@ -310,7 +310,7 @@ function PassportBuilder({ session, child, onSaved }) {
       if (saved) childId = saved.id;
     }
     if (childId && team.length > 0) {
-      const familyName = session?.user?.email?.split('@')[0] || "A family";
+      const familyName = displayName?.replace("'s Family","") || session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0] || "A family";
 
       for (const t of team) {
         // Generate a fresh token for every save — ensures email always goes out

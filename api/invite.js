@@ -65,9 +65,18 @@ export default async function handler(req) {
       </div>
 
       <!-- CTA -->
-      <a href="${acceptUrl}" style="display:block;text-align:center;padding:14px 24px;background:linear-gradient(135deg,#0d9488,#0f766e);border-radius:10px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;margin-bottom:16px;">
-        Accept invitation →
-      </a>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+        <tr>
+          <td align="center">
+            <a href="${acceptUrl}" style="display:inline-block;padding:14px 32px;background:#0d9488;border-radius:10px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;font-family:Arial,sans-serif;">
+              Accept invitation &rarr;
+            </a>
+          </td>
+        </tr>
+      </table>
+      <p style="text-align:center;margin:0 0 16px;font-size:13px;color:#6b6760;">
+        Or copy this link: <a href="${acceptUrl}" style="color:#0d9488;word-break:break-all;">${acceptUrl}</a>
+      </p>
 
       <p style="margin:0;font-size:12px;color:#a8a49e;text-align:center;line-height:1.6;">
         You'll be asked to create a free account or log in.<br>

@@ -76,7 +76,7 @@ function Root() {
         return
       }
 
-      // Check if provider first (accepted invitations)
+      // Check if provider - by provider_id first, then email fallback
       const { data: providerData } = await supabase
         .from('invitations')
         .select('id')
@@ -85,6 +85,27 @@ function Root() {
         .limit(1)
 
       if (providerData && providerData.length > 0) {
+        setIsProvider(true)
+        setLoading(false)
+        return
+      }
+
+      // Email fallback - handles timing issue after fresh invite acceptance
+      const { data: providerByEmail } = await supabase
+        .from('invitations')
+        .select('id, provider_id, accepted')
+        .eq('provider_email', session.user.email)
+        .eq('accepted', true)
+        .limit(1)
+
+      if (providerByEmail && providerByEmail.length > 0) {
+        // Link provider_id if missing
+        if (!providerByEmail[0].provider_id) {
+          await supabase.from('invitations')
+            .update({ provider_id: session.user.id })
+            .eq('provider_email', session.user.email)
+            .eq('accepted', true)
+        }
         setIsProvider(true)
         setLoading(false)
         return
