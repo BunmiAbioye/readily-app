@@ -54,12 +54,18 @@ function WaitlistForm({ dark = false, size = "default" }) {
     if (!email.trim() || !email.includes("@")) { setError("Please enter a valid email."); return; }
     setLoading(true); setError("");
     try {
-      const { error: sbError } = await supabase.from("waitlist").upsert({ email: email.trim().toLowerCase(), role, signed_up_at: new Date().toISOString() }, { onConflict: "email" });
-      if (sbError) {
-        console.error("[Readily] Waitlist error:", sbError);
-        throw sbError;
+      // Insert via server-side API to avoid RLS issues with anon key
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), role }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("[Readily] Waitlist error:", err);
+        throw new Error(err.error?.message || "Failed to join waitlist");
       }
-      // Send welcome email with signup link
+      // Send welcome email
       try {
         await fetch("/api/waitlist-welcome", {
           method: "POST",
