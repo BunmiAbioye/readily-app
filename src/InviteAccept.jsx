@@ -20,7 +20,7 @@ export default function InviteAccept({ token, onAuth }) {
   const [invite, setInvite]     = useState(null)
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState(null)
-  const [mode, setMode]         = useState('login') // 'login' | 'signup'
+  const [mode, setMode]         = useState('signup') // 'login' | 'signup'
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [name, setName]         = useState('')
@@ -34,14 +34,20 @@ export default function InviteAccept({ token, onAuth }) {
       try {
         const { data, error } = await supabase
           .from('invitations')
-          .select('*, children(name, diagnosis)')
+          .select('id, provider_email, role, accepted, invite_token')
           .eq('invite_token', token)
           .maybeSingle()
 
         if (error || !data) { setError('This invitation link is invalid or has expired.'); return; }
         if (data.accepted) { setError('This invitation has already been accepted. Please log in to access Readily.'); return; }
-        setInvite(data)
-        setEmail(data.provider_email) // Pre-fill email
+
+        // Get child name via security definer function
+        const { data: childName } = await supabase
+          .rpc('get_child_name_by_token', { p_token: token })
+        
+        const name = Array.isArray(childName) ? childName[0] : childName
+        setInvite({ ...data, children: { name: name || 'your child' } })
+        setEmail(data.provider_email)
       } catch(e) {
         setError('Something went wrong loading this invitation.')
       } finally {
