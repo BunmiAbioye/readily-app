@@ -10,11 +10,8 @@ export default async function handler(req) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  console.log('[Readily] Waitlist - URL:', supabaseUrl ? 'set' : 'MISSING');
-  console.log('[Readily] Waitlist - Key:', supabaseKey ? `set (${supabaseKey.length} chars)` : 'MISSING');
-
   if (!supabaseUrl || !supabaseKey) {
-    return new Response(JSON.stringify({ error: 'Database not configured', url: !!supabaseUrl, key: !!supabaseKey }), {
+    return new Response(JSON.stringify({ error: 'Database not configured' }), {
       status: 500, headers: { 'Content-Type': 'application/json' },
     });
   }
