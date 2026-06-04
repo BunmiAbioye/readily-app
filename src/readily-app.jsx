@@ -1528,6 +1528,47 @@ export default function ReadilyApp({ session }) {
   const [displayName, setDisplayName] = useState("My Family");
   const [showChildPicker, setShowChildPicker] = useState(false);
 
+  const loadChildData = async (c) => {
+    if (!c?.id) return;
+    try {
+      const { data: sessionData, error: sessErr } = await supabase
+        .from("sessions").select("*").eq("child_id", c.id)
+        .order("date", { ascending:false }).limit(20);
+      if (sessErr) console.error("[Readily] Sessions load error:", sessErr.message);
+
+      const { data: invites } = await supabase.from("invitations").select("provider_id, provider_email, role").eq("child_id", c.id);
+      const inviteMap = {};
+      if (invites) invites.forEach(inv => { if (inv.provider_id) inviteMap[inv.provider_id] = inv; });
+
+      const { data: providerList } = await supabase.from("providers").select("id, name, role");
+      const providerMap = {};
+      if (providerList) providerList.forEach(p => { providerMap[p.id] = p; });
+
+      if (sessionData) {
+        setSessions(sessionData.map(s => {
+          const prov = providerMap[s.provider_id];
+          const inv = inviteMap[s.provider_id];
+          return {
+            provider: prov?.name || inv?.provider_email?.split("@")[0] || "Provider",
+            role: prov?.role || inv?.role || "Provider",
+            date: new Date(s.date).toLocaleDateString("en-US", {weekday:"short",month:"short",day:"numeric"}),
+            response: s.response || "Good",
+            focusAreas: s.focus_areas || [],
+            win: s.win || "",
+            challenge: s.challenge || "",
+            forFamily: s.for_family || "",
+          };
+        }));
+      } else { setSessions([]); }
+
+      const { data: goalData } = await supabase.from("family_goals").select("*").eq("child_id", c.id);
+      setGoals(goalData || []);
+
+      const { data: therapyData } = await supabase.from("therapies").select("*").eq("child_id", c.id);
+      setTherapies(therapyData ? therapyData.map(t => ({ id:t.id, type:t.type||"Therapy", provider:t.provider_name||"", frequency:t.frequency||1, freqUnit:t.freq_unit||"week", costPerSession:t.cost_per_session||0, coverage:t.coverage||"none", startDate:t.start_date||"", endDate:t.end_date||"" })) : []);
+    } catch(e) { console.error("[Readily] Child data load error:", e); }
+  };
+
   useEffect(() => {
     if (isDemo) {
       setChild(DEMO_CHILD);
@@ -1549,59 +1590,11 @@ export default function ReadilyApp({ session }) {
         const { data: children } = await supabase.from("children").select("*").eq("family_id", session.user.id).order("created_at", { ascending: true });
         if (children?.length > 0) {
           setAllChildren(children);
-          // Remember last selected child
           const lastChildId = localStorage.getItem(`readily_child_${session.user.id}`);
           const c = children.find(ch => ch.id === lastChildId) || children[0];
           setChild(c);
 
-          // Load sessions - only if child exists
-          const { data: sessionData, error: sessErr } = await supabase
-            .from("sessions")
-            .select("*")
-            .eq("child_id", c.id)
-            .order("date", { ascending:false })
-            .limit(20);
-          if (sessErr) console.error("[Readily] Sessions load error:", sessErr.message);
-
-          // Load invitations for provider name/role lookup
-          const { data: invites } = await supabase
-            .from("invitations")
-            .select("provider_id, provider_email, role")
-            .eq("child_id", c.id);
-          const inviteMap = {};
-          if (invites) invites.forEach(inv => { if (inv.provider_id) inviteMap[inv.provider_id] = inv; });
-
-          // Load providers table for names
-          const { data: providerList } = await supabase
-            .from("providers")
-            .select("id, name, role");
-          const providerMap = {};
-          if (providerList) providerList.forEach(p => { providerMap[p.id] = p; });
-
-          if (sessionData) {
-            setSessions(sessionData.map(s => {
-              const prov = providerMap[s.provider_id];
-              const inv = inviteMap[s.provider_id];
-              const providerName = prov?.name || inv?.provider_email?.split("@")[0] || "Provider";
-              const providerRole = prov?.role || inv?.role || "Provider";
-              return {
-                provider: providerName,
-                role: providerRole,
-                date: new Date(s.date).toLocaleDateString("en-US", {weekday:"short",month:"short",day:"numeric"}),
-                response: s.response || "Good",
-                focusAreas: s.focus_areas || [],
-                win: s.win || "",
-                challenge: s.challenge || "",
-                forFamily: s.for_family || "",
-              };
-            }));
-          }
-
-          const { data: goalData } = await supabase.from("family_goals").select("*").eq("child_id", c.id);
-          if (goalData) setGoals(goalData);
-
-          const { data: therapyData } = await supabase.from("therapies").select("*").eq("child_id", c.id);
-          if (therapyData) setTherapies(therapyData.map(t => ({ id:t.id, type:t.type||"Therapy", provider:t.provider_name||"", frequency:t.frequency||1, freqUnit:t.freq_unit||"week", costPerSession:t.cost_per_session||0, coverage:t.coverage||"none", startDate:t.start_date||"", endDate:t.end_date||"" })));
+          await loadChildData(c);
         }
       } catch(e) { console.error("Data load error:", e); }
       finally { setDataLoading(false); }
@@ -1623,11 +1616,14 @@ export default function ReadilyApp({ session }) {
     setPage("dashboard");
   };
 
-  const switchChild = (c) => {
+  const switchChild = async (c) => {
     setChild(c);
     localStorage.setItem(`readily_child_${session.user.id}`, c.id);
     setShowChildPicker(false);
     setPage("dashboard");
+    // Clear old data immediately then load new child's data
+    setSessions([]); setGoals([]); setTherapies([]);
+    await loadChildData(c);
   };
 
   // Public shared passport view — no auth needed
