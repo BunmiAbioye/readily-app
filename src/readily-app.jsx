@@ -1729,7 +1729,10 @@ export default function ReadilyApp({ session }) {
                 <span style={{ fontSize:10, color:"rgba(255,255,255,0.45)", fontFamily:"'DM Mono',monospace" }}>{sessions.length} sessions this week</span>
               </div>
               {!isDemo&&(
-                <button onClick={async()=>{await supabase.auth.signOut();window.location.reload();}} style={{ marginTop:10, width:"100%", padding:"5px 8px", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:6, color:"rgba(255,255,255,0.4)", fontFamily:"'DM Sans',sans-serif", fontSize:11, cursor:"pointer" }}>Sign out</button>
+                <div style={{ display:"flex", flexDirection:"column", gap:6, marginTop:10 }}>
+                  <button onClick={()=>setPage("new_child")} style={{ width:"100%", padding:"5px 8px", background:"rgba(13,148,136,0.15)", border:"1px solid rgba(13,148,136,0.3)", borderRadius:6, color:"rgba(94,234,212,0.8)", fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, cursor:"pointer" }}>+ Add child</button>
+                  <button onClick={async()=>{await supabase.auth.signOut();window.location.reload();}} style={{ width:"100%", padding:"5px 8px", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:6, color:"rgba(255,255,255,0.4)", fontFamily:"'DM Sans',sans-serif", fontSize:11, cursor:"pointer" }}>Sign out</button>
+                </div>
               )}
             </div>
           </div>
