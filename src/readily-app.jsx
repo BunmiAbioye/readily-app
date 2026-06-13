@@ -287,6 +287,27 @@ function PassportBuilder({ session, child, onSaved }) {
       await supabase.from("invitations").delete().eq("child_id", child.id).eq("provider_email", email);
     }
   };
+
+  const [resending, setResending] = useState(null);
+  const [resent, setResent] = useState(null);
+
+  const resendInvite = async (t) => {
+    if (!child?.id) return;
+    setResending(t.email);
+    try {
+      const token = Math.random().toString(36).substring(2,10) + Math.random().toString(36).substring(2,10);
+      await supabase.from("invitations").update({ invite_token: token, invited_at: new Date().toISOString() }).eq("child_id", child.id).eq("provider_email", t.email);
+      const familyName = session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0] || "A family";
+      await fetch("/api/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ providerEmail: t.email, providerRole: t.role, childName: d.name, familyName, inviteToken: token }),
+      });
+      setResent(t.email);
+      setTimeout(() => setResent(null), 3000);
+    } catch(e) { console.error("[Readily] Resend error:", e); }
+    finally { setResending(null); }
+  };
   const inp = { width:"100%", padding:"10px 12px", borderRadius:"8px", border:`1.5px solid ${T.border}`, fontFamily:"'DM Sans',sans-serif", fontSize:"14px", color:T.ink, background:T.white, boxSizing:"border-box" };
 
   const handleSave = async () => {
@@ -440,6 +461,11 @@ function PassportBuilder({ session, child, onSaved }) {
             <span style={{ fontSize:10, fontWeight:700, color:t.accepted?T.green:T.amber, fontFamily:"'DM Sans',sans-serif", whiteSpace:"nowrap" }}>
               {t.accepted ? "✓ Accepted" : "⏳ Pending"}
             </span>
+            {!t.accepted && (
+              <button onClick={()=>resendInvite(t)} disabled={resending===t.email} style={{ background:"none", border:`1px solid ${T.border}`, borderRadius:5, color:resent===t.email?T.green:T.ink3, fontFamily:"'DM Sans',sans-serif", fontSize:10, fontWeight:600, cursor:"pointer", padding:"2px 7px", whiteSpace:"nowrap" }}>
+                {resent===t.email ? "✓ Sent!" : resending===t.email ? "…" : "Resend"}
+              </button>
+            )}
             <button onClick={()=>removeFromTeam(t.email)} style={{ background:"none", border:"none", color:T.ink4, cursor:"pointer", fontSize:16 }}>×</button>
           </div>
         </div>
@@ -539,12 +565,42 @@ function PassportBuilder({ session, child, onSaved }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // WEEKLY DIGEST
 // ═══════════════════════════════════════════════════════════════════════════
-function WeeklyDigestScreen({ child, sessions }) {
+function WeeklyDigestScreen({ child, sessions, session }) {
   const [digest, setDigest] = useState(null);
   const [loading, setLoading] = useState(false);
   const [openCard, setOpenCard] = useState(null);
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [digestEnabled, setDigestEnabled] = useState(true);
+  const [digestDay, setDigestDay] = useState(5);
+  const [digestHour, setDigestHour] = useState(18);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+
+  const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const HOURS = Array.from({length:24},(_,i)=>{
+    const h = i % 12 || 12;
+    const ampm = i < 12 ? "AM" : "PM";
+    return { value: i, label: `${h}:00 ${ampm}` };
+  });
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    supabase.from("families").select("digest_enabled,digest_day,digest_hour").eq("id", session.user.id).maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setDigestEnabled(data.digest_enabled ?? true);
+          setDigestDay(data.digest_day ?? 5);
+          setDigestHour(data.digest_hour ?? 18);
+        }
+      });
+  }, [session?.user?.id]);
+
+  const saveSettings = async () => {
+    await supabase.from("families").update({ digest_enabled: digestEnabled, digest_day: digestDay, digest_hour: digestHour }).eq("id", session.user.id);
+    setSettingsSaved(true);
+    setTimeout(() => { setSettingsSaved(false); setShowSettings(false); }, 1500);
+  };
 
 
   const generate = async () => {
@@ -636,8 +692,41 @@ function WeeklyDigestScreen({ child, sessions }) {
               <span>{emailSent ? "Opened in email" : emailSending ? "Preparing…" : "Email this digest"}</span>
             </button>
           )}
+          <button onClick={()=>setShowSettings(v=>!v)} style={{ padding:"8px 12px", background:T.white, border:`1.5px solid ${T.border}`, borderRadius:8, color:T.ink3, fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:12, cursor:"pointer" }}>⚙️</button>
         </div>
       </div>
+
+      {/* Digest Settings Panel */}
+      {showSettings && (
+        <div style={{ background:T.white, border:`1px solid ${T.border}`, borderRadius:12, padding:"18px 20px", marginBottom:16 }}>
+          <div style={{ fontSize:13, fontWeight:700, color:T.ink, fontFamily:"'DM Sans',sans-serif", marginBottom:14 }}>📅 Weekly Digest Schedule</div>
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
+            <label style={{ fontSize:13, color:T.ink2, fontFamily:"'DM Sans',sans-serif", fontWeight:600 }}>Auto-send digest</label>
+            <button onClick={()=>setDigestEnabled(v=>!v)} style={{ width:40, height:22, borderRadius:11, background:digestEnabled?T.teal:T.border, border:"none", cursor:"pointer", position:"relative", transition:"background 0.2s", flexShrink:0 }}>
+              <div style={{ width:18, height:18, borderRadius:"50%", background:"#fff", position:"absolute", top:2, left:digestEnabled?20:2, transition:"left 0.2s" }} />
+            </button>
+          </div>
+          {digestEnabled && (
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
+              <div>
+                <label style={{ fontSize:11, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>DAY</label>
+                <select value={digestDay} onChange={e=>setDigestDay(Number(e.target.value))} style={{ width:"100%", padding:"8px 10px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink }}>
+                  {DAYS.map((d,i)=><option key={i} value={i}>{d}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize:11, fontWeight:700, color:T.ink3, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.06em", display:"block", marginBottom:5 }}>TIME (Eastern)</label>
+                <select value={digestHour} onChange={e=>setDigestHour(Number(e.target.value))} style={{ width:"100%", padding:"8px 10px", background:T.surface, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink }}>
+                  {HOURS.map(h=><option key={h.value} value={h.value}>{h.label}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+          <button onClick={saveSettings} style={{ padding:"9px 20px", background:settingsSaved?T.green:`linear-gradient(135deg,${T.teal},${T.tealD})`, border:"none", borderRadius:8, color:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:13, cursor:"pointer", transition:"all 0.2s" }}>
+            {settingsSaved ? "✓ Saved!" : "Save settings"}
+          </button>
+        </div>
+      )}
 
       {sessions.length === 0 && !loading && (
         <div style={{ background:T.white, border:`1px solid ${T.border}`, borderRadius:14, padding:"28px", textAlign:"center", marginBottom:16 }}>
@@ -1430,12 +1519,55 @@ export default function ReadilyApp({ session }) {
   const isDemo = session?.user?.email === DEMO_EMAIL;
 
   const [child, setChild] = useState(null);
+  const [allChildren, setAllChildren] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [goals, setGoals] = useState([]);
   const [docs, setDocs] = useState([]);
   const [therapies, setTherapies] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [displayName, setDisplayName] = useState("My Family");
+  const [showChildPicker, setShowChildPicker] = useState(false);
+
+  const loadChildData = async (c) => {
+    if (!c?.id) return;
+    try {
+      const { data: sessionData, error: sessErr } = await supabase
+        .from("sessions").select("*").eq("child_id", c.id)
+        .order("date", { ascending:false }).limit(20);
+      if (sessErr) console.error("[Readily] Sessions load error:", sessErr.message);
+
+      const { data: invites } = await supabase.from("invitations").select("provider_id, provider_email, role").eq("child_id", c.id);
+      const inviteMap = {};
+      if (invites) invites.forEach(inv => { if (inv.provider_id) inviteMap[inv.provider_id] = inv; });
+
+      const { data: providerList } = await supabase.from("providers").select("id, name, role");
+      const providerMap = {};
+      if (providerList) providerList.forEach(p => { providerMap[p.id] = p; });
+
+      if (sessionData) {
+        setSessions(sessionData.map(s => {
+          const prov = providerMap[s.provider_id];
+          const inv = inviteMap[s.provider_id];
+          return {
+            provider: prov?.name || inv?.provider_email?.split("@")[0] || "Provider",
+            role: prov?.role || inv?.role || "Provider",
+            date: new Date(s.date).toLocaleDateString("en-US", {weekday:"short",month:"short",day:"numeric"}),
+            response: s.response || "Good",
+            focusAreas: s.focus_areas || [],
+            win: s.win || "",
+            challenge: s.challenge || "",
+            forFamily: s.for_family || "",
+          };
+        }));
+      } else { setSessions([]); }
+
+      const { data: goalData } = await supabase.from("family_goals").select("*").eq("child_id", c.id);
+      setGoals(goalData || []);
+
+      const { data: therapyData } = await supabase.from("therapies").select("*").eq("child_id", c.id);
+      setTherapies(therapyData ? therapyData.map(t => ({ id:t.id, type:t.type||"Therapy", provider:t.provider_name||"", frequency:t.frequency||1, freqUnit:t.freq_unit||"week", costPerSession:t.cost_per_session||0, coverage:t.coverage||"none", startDate:t.start_date||"", endDate:t.end_date||"" })) : []);
+    } catch(e) { console.error("[Readily] Child data load error:", e); }
+  };
 
   useEffect(() => {
     if (isDemo) {
@@ -1455,59 +1587,14 @@ export default function ReadilyApp({ session }) {
         const { data: family } = await supabase.from("families").select("name").eq("id", session.user.id).maybeSingle();
         if (family?.name) setDisplayName(family.name + "'s Family");
 
-        const { data: children } = await supabase.from("children").select("*").eq("family_id", session.user.id).limit(1);
+        const { data: children } = await supabase.from("children").select("*").eq("family_id", session.user.id).order("created_at", { ascending: true });
         if (children?.length > 0) {
-          const c = children[0];
+          setAllChildren(children);
+          const lastChildId = localStorage.getItem(`readily_child_${session.user.id}`);
+          const c = children.find(ch => ch.id === lastChildId) || children[0];
           setChild(c);
 
-          // Load sessions - only if child exists
-          const { data: sessionData, error: sessErr } = await supabase
-            .from("sessions")
-            .select("*")
-            .eq("child_id", c.id)
-            .order("date", { ascending:false })
-            .limit(20);
-          if (sessErr) console.error("[Readily] Sessions load error:", sessErr.message);
-
-          // Load invitations for provider name/role lookup
-          const { data: invites } = await supabase
-            .from("invitations")
-            .select("provider_id, provider_email, role")
-            .eq("child_id", c.id);
-          const inviteMap = {};
-          if (invites) invites.forEach(inv => { if (inv.provider_id) inviteMap[inv.provider_id] = inv; });
-
-          // Load providers table for names
-          const { data: providerList } = await supabase
-            .from("providers")
-            .select("id, name, role");
-          const providerMap = {};
-          if (providerList) providerList.forEach(p => { providerMap[p.id] = p; });
-
-          if (sessionData) {
-            setSessions(sessionData.map(s => {
-              const prov = providerMap[s.provider_id];
-              const inv = inviteMap[s.provider_id];
-              const providerName = prov?.name || inv?.provider_email?.split("@")[0] || "Provider";
-              const providerRole = prov?.role || inv?.role || "Provider";
-              return {
-                provider: providerName,
-                role: providerRole,
-                date: new Date(s.date).toLocaleDateString("en-US", {weekday:"short",month:"short",day:"numeric"}),
-                response: s.response || "Good",
-                focusAreas: s.focus_areas || [],
-                win: s.win || "",
-                challenge: s.challenge || "",
-                forFamily: s.for_family || "",
-              };
-            }));
-          }
-
-          const { data: goalData } = await supabase.from("family_goals").select("*").eq("child_id", c.id);
-          if (goalData) setGoals(goalData);
-
-          const { data: therapyData } = await supabase.from("therapies").select("*").eq("child_id", c.id);
-          if (therapyData) setTherapies(therapyData.map(t => ({ id:t.id, type:t.type||"Therapy", provider:t.provider_name||"", frequency:t.frequency||1, freqUnit:t.freq_unit||"week", costPerSession:t.cost_per_session||0, coverage:t.coverage||"none", startDate:t.start_date||"", endDate:t.end_date||"" })));
+          await loadChildData(c);
         }
       } catch(e) { console.error("Data load error:", e); }
       finally { setDataLoading(false); }
@@ -1517,12 +1604,26 @@ export default function ReadilyApp({ session }) {
   }, [session?.user?.id, isDemo]);
 
   const handleSaved = async () => {
-    const { data: children } = await supabase.from("children").select("*").eq("family_id", session.user.id).limit(1);
+    const { data: children } = await supabase.from("children").select("*").eq("family_id", session.user.id).order("created_at", { ascending: true });
     if (children?.length > 0) {
-      setChild(children[0]);
-      setDisplayName(children[0].name + "'s Family");
+      setAllChildren(children);
+      // Keep currently selected child or default to first
+      const lastChildId = localStorage.getItem(`readily_child_${session.user.id}`);
+      const c = children.find(ch => ch.id === lastChildId) || children[0];
+      setChild(c);
+      setDisplayName(c.name + "'s Family");
     }
     setPage("dashboard");
+  };
+
+  const switchChild = async (c) => {
+    setChild(c);
+    localStorage.setItem(`readily_child_${session.user.id}`, c.id);
+    setShowChildPicker(false);
+    setPage("dashboard");
+    // Clear old data immediately then load new child's data
+    setSessions([]); setGoals([]); setTherapies([]);
+    await loadChildData(c);
   };
 
   // Public shared passport view — no auth needed
@@ -1539,7 +1640,8 @@ export default function ReadilyApp({ session }) {
   const SCREENS = {
     dashboard: <Dashboard setPage={setPage} child={child} sessions={sessions} goals={goals} therapies={therapies} />,
     passport:  <PassportBuilder session={session} child={child} onSaved={handleSaved} />,
-    digest:    <WeeklyDigestScreen child={child} sessions={sessions} />,
+    new_child: <PassportBuilder session={session} child={null} onSaved={handleSaved} />,
+    digest:    <WeeklyDigestScreen child={child} sessions={sessions} session={session} />,
     documents: <DocsGoalsScreen child={child} goals={goals} docs={docs} onGoalsChange={setGoals} />,
     costs:     <CostEstimatorScreen child={child} therapies={therapies} onTherapiesChange={setTherapies} />,
     provider:  <ProviderView child={child} session={session} />,
@@ -1602,7 +1704,20 @@ export default function ReadilyApp({ session }) {
 
           <div style={{ padding:"12px 14px", borderTop:"1px solid rgba(255,255,255,0.06)", margin:"0 8px 8px" }}>
             <div style={{ background:"rgba(255,255,255,0.05)", borderRadius:10, padding:"10px 12px" }}>
-              <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.35)", fontFamily:"'DM Mono',monospace", letterSpacing:"0.08em", marginBottom:5 }}>CHILD</div>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
+                <div style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.35)", fontFamily:"'DM Mono',monospace", letterSpacing:"0.08em" }}>CHILD</div>
+                {allChildren.length > 1 && (
+                  <button onClick={()=>setShowChildPicker(v=>!v)} style={{ background:"none", border:"none", fontSize:10, color:T.teal, fontFamily:"'DM Sans',sans-serif", fontWeight:700, cursor:"pointer", padding:0 }}>Switch ↕</button>
+                )}
+              </div>
+              {showChildPicker && allChildren.length > 1 && (
+                <div style={{ marginBottom:8, background:"rgba(0,0,0,0.2)", borderRadius:8, overflow:"hidden" }}>
+                  {allChildren.map(c=>(
+                    <button key={c.id} onClick={()=>switchChild(c)} style={{ width:"100%", padding:"7px 10px", background:c.id===child?.id?"rgba(13,148,136,0.3)":"transparent", border:"none", borderBottom:"1px solid rgba(255,255,255,0.06)", color:c.id===child?.id?"#5eead4":"rgba(255,255,255,0.6)", fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:c.id===child?.id?700:400, cursor:"pointer", textAlign:"left" }}>{c.name}</button>
+                  ))}
+                  {!isDemo && <button onClick={()=>{ setPage("new_child"); setShowChildPicker(false); }} style={{ width:"100%", padding:"7px 10px", background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, cursor:"pointer", textAlign:"left" }}>+ Add another child</button>}
+                </div>
+              )}
               <div style={{ fontSize:13, fontWeight:700, color:"#fff" }}>{child?.name||"Not set up yet"}</div>
               <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)", marginTop:1 }}>{child?.diagnosis||"—"}</div>
               <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:8 }}>
@@ -1610,7 +1725,10 @@ export default function ReadilyApp({ session }) {
                 <span style={{ fontSize:10, color:"rgba(255,255,255,0.45)", fontFamily:"'DM Mono',monospace" }}>{sessions.length} sessions this week</span>
               </div>
               {!isDemo&&(
-                <button onClick={async()=>{await supabase.auth.signOut();window.location.reload();}} style={{ marginTop:10, width:"100%", padding:"5px 8px", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:6, color:"rgba(255,255,255,0.4)", fontFamily:"'DM Sans',sans-serif", fontSize:11, cursor:"pointer" }}>Sign out</button>
+                <div style={{ display:"flex", flexDirection:"column", gap:6, marginTop:10 }}>
+                  <button onClick={()=>setPage("new_child")} style={{ width:"100%", padding:"5px 8px", background:"rgba(13,148,136,0.15)", border:"1px solid rgba(13,148,136,0.3)", borderRadius:6, color:"rgba(94,234,212,0.8)", fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:600, cursor:"pointer" }}>+ Add child</button>
+                  <button onClick={async()=>{await supabase.auth.signOut();window.location.reload();}} style={{ width:"100%", padding:"5px 8px", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:6, color:"rgba(255,255,255,0.4)", fontFamily:"'DM Sans',sans-serif", fontSize:11, cursor:"pointer" }}>Sign out</button>
+                </div>
               )}
             </div>
           </div>

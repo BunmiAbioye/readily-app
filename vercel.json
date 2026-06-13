@@ -4,6 +4,7 @@
   "framework": "vite",
   "rewrites": [
     { "source": "/passport/(.*)", "destination": "/index.html" },
+    { "source": "/invite/(.*)", "destination": "/index.html" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
