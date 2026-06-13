@@ -43,85 +43,24 @@ function Reveal({ children, delay = 0, y = 20 }) {
 }
 
 // ─── WAITLIST FORM ─────────────────────────────────────────────────────────
-function WaitlistForm({ dark = false, size = "default" }) {
-  const [email, setEmail]     = useState("");
-  const [role, setRole]       = useState("parent");
-  const [loading, setLoading] = useState(false);
-  const [done, setDone]       = useState(false);
-  const [error, setError]     = useState("");
-
-  const handleSubmit = async () => {
-    if (!email.trim() || !email.includes("@")) { setError("Please enter a valid email."); return; }
-    setLoading(true); setError("");
-    try {
-      // Insert via server-side API to avoid RLS issues with anon key
-      const res = await fetch("/api/waitlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), role }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        console.error("[Readily] Waitlist error:", err);
-        throw new Error(err.error?.message || "Failed to join waitlist");
-      }
-      // Send welcome email
-      try {
-        await fetch("/api/waitlist-welcome", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim().toLowerCase(), role }),
-        });
-      } catch(e) { console.error("[Readily] Welcome email error:", e); }
-      setDone(true);
-    } catch (e) {
-      console.error("[Readily] Waitlist catch:", e);
-      setError(e?.message || "Something went wrong. Try again.");
-    } finally { setLoading(false); }
-  };
-
-  const borderColor  = dark ? "rgba(255,255,255,0.15)" : "#d6d0c8";
-  const inputBg      = dark ? "rgba(255,255,255,0.07)" : C.white;
-  const inputColor   = dark ? C.white : C.ink;
-  const labelColor   = dark ? "rgba(255,255,255,0.5)" : C.ink3;
-  const isLarge      = size === "large";
-
-
-
+function WaitlistForm({ dark = false, size = "default", onLegal }) {
   return (
     <div>
-      {/* Role selector */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-        {[["parent","👨‍👩‍👧 Parent / Caregiver"],["provider","🩺 Therapist / Teacher"]].map(([val, lbl]) => (
-          <button key={val} onClick={() => setRole(val)} style={{ padding: "6px 14px", borderRadius: 20, border: role === val ? `2px solid ${C.teal}` : `1.5px solid ${borderColor}`, background: role === val ? C.teal + "18" : "transparent", color: role === val ? (dark ? "#5eead4" : C.tealD) : labelColor, fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: role === val ? 700 : 400, cursor: "pointer", transition: "all 0.15s" }}>{lbl}</button>
-        ))}
+      <a
+        href="?auth=signup"
+        style={{ display:"block", width:"100%", padding:"14px 24px", background:`linear-gradient(135deg,${C.teal},${C.tealD})`, borderRadius:12, color:"#fff", fontFamily:"'Outfit',sans-serif", fontWeight:800, fontSize:16, textDecoration:"none", textAlign:"center", boxShadow:`0 4px 20px ${C.teal}55`, cursor:"pointer", boxSizing:"border-box" }}>
+        Sign up free →
+      </a>
+      <div style={{ marginTop:10, textAlign:"center", fontSize:12, color: dark ? "rgba(255,255,255,0.4)" : C.ink4, fontFamily:"'Outfit',sans-serif" }}>
+        No credit card. Free during early access.{" "}
+        Already have an account?{" "}
+        <a href="?auth=login" style={{ color:C.teal, textDecoration:"none", fontWeight:600 }}>Log in →</a>
       </div>
-      {/* Email input */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <input
-          type="email"
-          value={email}
-          onChange={e => { setEmail(e.target.value); setError(""); }}
-          onKeyDown={e => e.key === "Enter" && handleSubmit()}
-          placeholder="your@email.com"
-          style={{ flex: 1, minWidth: 200, padding: isLarge ? "14px 18px" : "12px 16px", background: inputBg, border: `1.5px solid ${error ? C.rose : borderColor}`, borderRadius: 10, fontFamily: "'Outfit', sans-serif", fontSize: isLarge ? 16 : 14, color: inputColor, outline: "none", transition: "border-color 0.2s" }}
-          onFocus={e => e.target.style.borderColor = C.teal}
-          onBlur={e => e.target.style.borderColor = error ? C.rose : borderColor}
-        />
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          style={{ padding: isLarge ? "14px 28px" : "12px 22px", background: loading ? C.ink3 : `linear-gradient(135deg,${C.teal},${C.tealD})`, border: "none", borderRadius: 10, color: "#fff", fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: isLarge ? 16 : 14, cursor: loading ? "not-allowed" : "pointer", whiteSpace: "nowrap", boxShadow: loading ? "none" : `0 4px 16px ${C.teal}44`, transition: "all 0.2s" }}>
-          {loading ? "Joining…" : "Join waitlist →"}
-        </button>
-      </div>
-      {error && <div style={{ fontSize: 12, color: C.rose, fontFamily: "'Outfit', sans-serif", marginTop: 6 }}>{error}</div>}
-      <div style={{ fontSize: 11, color: labelColor, fontFamily: "'Outfit', sans-serif", marginTop: 8 }}>No spam. No credit card. Just early access.</div>
     </div>
   );
 }
 
-// ─── PROBLEM STATEMENT CARD ────────────────────────────────────────────────
+
 function PainCard({ emoji, text, delay }) {
   return (
     <Reveal delay={delay}>
@@ -555,21 +494,4 @@ export default function ReadilyLanding({ onLogin, onSignUp, onLegal }) {
       </div>
     </>
   );
-}export function WaitlistForm({ dark = false, onLegal }) {
-  return (
-    <div>
-      <a
-        href="?auth=signup"
-        style={{ display:"block", width:"100%", padding:"14px 24px", background:`linear-gradient(135deg,${C.teal},${C.tealD})`, borderRadius:12, color:"#fff", fontFamily:"'Outfit',sans-serif", fontWeight:800, fontSize:16, textDecoration:"none", textAlign:"center", boxShadow:`0 4px 20px ${C.teal}55`, cursor:"pointer", boxSizing:"border-box" }}>
-        Sign up free →
-      </a>
-      <div style={{ marginTop:10, textAlign:"center", fontSize:12, color: dark ? "rgba(255,255,255,0.4)" : C.ink4, fontFamily:"'Outfit',sans-serif" }}>
-        No credit card. Free during early access.{" "}
-        Already have an account?{" "}
-        <a href="?auth=login" style={{ color:C.teal, textDecoration:"none", fontWeight:600 }}>Log in →</a>
-      </div>
-    </div>
-  );
 }
-
-
