@@ -1502,6 +1502,29 @@ function SharedPassportView({ token }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PAYWALL BANNER
+// ═══════════════════════════════════════════════════════════════════════════
+function PaywallBanner({ feature }) {
+  return (
+    <div style={{ background:`linear-gradient(135deg,${T.indigo}18,${T.violet}18)`, border:`1.5px solid ${T.indigo}44`, borderRadius:14, padding:"24px 20px", textAlign:"center", margin:"20px 0" }}>
+      <div style={{ fontSize:32, marginBottom:10 }}>✨</div>
+      <h3 style={{ margin:"0 0 8px", fontSize:18, fontWeight:800, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>
+        {feature} is a Pro feature
+      </h3>
+      <p style={{ margin:"0 0 16px", fontSize:13, color:T.ink3, fontFamily:"'DM Sans',sans-serif", lineHeight:1.6 }}>
+        Upgrade to Readily Pro to unlock the Weekly Digest, AI Chat, scheduled emails, and unlimited providers.
+      </p>
+      <a href="mailto:contact@ablepam.ca?subject=Upgrade to Pro" style={{ display:"inline-block", padding:"10px 24px", background:`linear-gradient(135deg,${T.indigo},${T.violet})`, borderRadius:10, color:"#fff", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:14, textDecoration:"none" }}>
+        Contact us to upgrade →
+      </a>
+      <div style={{ marginTop:10, fontSize:11, color:T.ink4, fontFamily:"'DM Sans',sans-serif" }}>
+        Early access users — you have full access until further notice.
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // SHELL
 // ═══════════════════════════════════════════════════════════════════════════
 export default function ReadilyApp({ session }) {
@@ -1520,6 +1543,7 @@ export default function ReadilyApp({ session }) {
 
   const [child, setChild] = useState(null);
   const [allChildren, setAllChildren] = useState([]);
+  const [plan, setPlan] = useState('early_access'); // 'early_access' | 'free' | 'pro'
   const [sessions, setSessions] = useState([]);
   const [goals, setGoals] = useState([]);
   const [docs, setDocs] = useState([]);
@@ -1584,8 +1608,9 @@ export default function ReadilyApp({ session }) {
     const loadData = async () => {
       setDataLoading(true);
       try {
-        const { data: family } = await supabase.from("families").select("name").eq("id", session.user.id).maybeSingle();
+        const { data: family } = await supabase.from("families").select("name, plan, digest_enabled, digest_day, digest_hour").eq("id", session.user.id).maybeSingle();
         if (family?.name) setDisplayName(family.name + "'s Family");
+        if (family?.plan) setPlan(family.plan);
 
         const { data: children } = await supabase.from("children").select("*").eq("family_id", session.user.id).order("created_at", { ascending: true });
         if (children?.length > 0) {
@@ -1637,11 +1662,13 @@ export default function ReadilyApp({ session }) {
     </div>
   );
 
+  const isPaid = plan === 'early_access' || plan === 'pro'; // gate check
+
   const SCREENS = {
     dashboard: <Dashboard setPage={setPage} child={child} sessions={sessions} goals={goals} therapies={therapies} />,
     passport:  <PassportBuilder session={session} child={child} onSaved={handleSaved} />,
     new_child: <PassportBuilder session={session} child={null} onSaved={handleSaved} />,
-    digest:    <WeeklyDigestScreen child={child} sessions={sessions} session={session} />,
+    digest:    isPaid ? <WeeklyDigestScreen child={child} sessions={sessions} session={session} /> : <PaywallBanner feature="Weekly Digest" />,
     documents: <DocsGoalsScreen child={child} goals={goals} docs={docs} onGoalsChange={setGoals} />,
     costs:     <CostEstimatorScreen child={child} therapies={therapies} onTherapiesChange={setTherapies} />,
     provider:  <ProviderView child={child} session={session} />,

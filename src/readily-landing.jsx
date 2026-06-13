@@ -86,21 +86,7 @@ function WaitlistForm({ dark = false, size = "default" }) {
   const labelColor   = dark ? "rgba(255,255,255,0.5)" : C.ink3;
   const isLarge      = size === "large";
 
-  if (done) return (
-    <div style={{ padding: "20px 24px", background: dark ? "rgba(13,148,136,0.15)" : C.tealL, borderRadius: 14, border: `1px solid ${dark ? C.teal+"55" : C.teal+"44"}`, textAlign: "center" }}>
-      <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: dark ? "#fff" : C.tealD, fontFamily: "'Outfit', sans-serif", marginBottom: 6 }}>You're on the list!</div>
-      <div style={{ fontSize: 13, color: dark ? "rgba(255,255,255,0.6)" : C.ink3, fontFamily: "'Outfit', sans-serif", lineHeight: 1.6, marginBottom: 16 }}>
-        Good news — Readily is ready for you right now. Create your account and start building your child's profile today.
-      </div>
-      <a href="?auth=signup" style={{ display:"block", padding:"12px 20px", background:`linear-gradient(135deg,${C.teal},${C.tealD})`, borderRadius:10, color:"#fff", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, textDecoration:"none", marginBottom:10 }}>
-        Create your account now →
-      </a>
-      <div style={{ fontSize:11, color: dark ? "rgba(255,255,255,0.35)" : C.ink4, fontFamily:"'Outfit',sans-serif" }}>
-        Already have an account? <a href="?auth=login" style={{ color:C.teal, textDecoration:"none", fontWeight:600 }}>Log in →</a>
-      </div>
-    </div>
-  );
+
 
   return (
     <div>
@@ -338,7 +324,7 @@ export default function ReadilyLanding({ onLogin, onSignUp, onLegal }) {
               <WaitlistForm size="large" />
 
               <div style={{ display: "flex", alignItems: "center", gap: 20, marginTop: 28, flexWrap: "wrap" }}>
-                {[["⚡","Free during beta"],["🔒","Your data, your control"],["⏱","12 min to set up"]].map(([icon, text]) => (
+                {[["⚡","Free during early access"],["🔒","Your data, your control"],["⏱","12 min to set up"]].map(([icon, text]) => (
                   <div key={text} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ fontSize: 13 }}>{icon}</span>
                     <span style={{ fontSize: 12, color: C.ink3, fontWeight: 500 }}>{text}</span>
@@ -503,10 +489,11 @@ export default function ReadilyLanding({ onLogin, onSignUp, onLegal }) {
             </Reveal>
             <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
               {[
-                ["🪪", "Build your child's profile", "Take less than 12 minutes to capture who your child is — what helps them, what's hard, how they communicate. You'll never have to explain it again."],
-                ["🩺", "Invite your care team", "Add your providers by email. They get a simple link — no app download, no new login. They log sessions in 2 minutes."],
-                ["📬", "Get your weekly digest", "Every Friday, Readily synthesizes the week across all providers into one warm, readable summary with patterns and home tips."],
-                ["💰", "Track your costs", "Add your therapies once. See your full annual out-of-pocket picture updated in real time."],
+                ["🪪", "Build your child's Care Passport", "Take less than 12 minutes to capture who your child is — what helps them, what's hard, how they communicate. Share a link with anyone. They arrive informed. You never repeat yourself again."],
+                ["👨‍👩‍👧‍👦", "Multi-child support", "Have more than one child with special needs? Each child gets their own passport, care team, costs, and weekly digest. Switch between them in one tap."],
+                ["🩺", "Invite your care team", "Add therapists and teachers by email. They get their own provider dashboard — no app download, no new system to learn. They log sessions in under 2 minutes."],
+                ["📬", "Get your weekly digest automatically", "Every Friday at 6PM, Readily emails you an AI-generated summary of your child's week across all providers — patterns, wins, and tips to try at home."],
+                ["💰", "Track your therapy costs", "Add your therapies once. See your full annual out-of-pocket picture updated in real time, by therapy type and coverage level."],
               ].map(([icon, title, body], i) => (
                 <Reveal key={i} delay={i * 80}>
                   <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
@@ -568,4 +555,21 @@ export default function ReadilyLanding({ onLogin, onSignUp, onLegal }) {
       </div>
     </>
   );
+}export function WaitlistForm({ dark = false, onLegal }) {
+  return (
+    <div>
+      <a
+        href="?auth=signup"
+        style={{ display:"block", width:"100%", padding:"14px 24px", background:`linear-gradient(135deg,${C.teal},${C.tealD})`, borderRadius:12, color:"#fff", fontFamily:"'Outfit',sans-serif", fontWeight:800, fontSize:16, textDecoration:"none", textAlign:"center", boxShadow:`0 4px 20px ${C.teal}55`, cursor:"pointer", boxSizing:"border-box" }}>
+        Sign up free →
+      </a>
+      <div style={{ marginTop:10, textAlign:"center", fontSize:12, color: dark ? "rgba(255,255,255,0.4)" : C.ink4, fontFamily:"'Outfit',sans-serif" }}>
+        No credit card. Free during early access.{" "}
+        Already have an account?{" "}
+        <a href="?auth=login" style={{ color:C.teal, textDecoration:"none", fontWeight:600 }}>Log in →</a>
+      </div>
+    </div>
+  );
 }
+
+
