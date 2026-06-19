@@ -610,7 +610,7 @@ function WeeklyDigestScreen({ child, sessions, session }) {
     const lines = sessions.map((s,i)=>`Session ${i+1}: ${s.role} (${s.date}) — Response: ${s.response}. Win: "${s.win}" Challenge: "${s.challenge}" For family: "${s.forFamily}"`).join("\n");
     const prompt = `Write a warm weekly digest for parents of ${name}, age ${child?.age||"unknown"}, ${child?.diagnosis||"special needs"}.\n\nSESSIONS:\n${lines||"No sessions this week."}\n\nRespond ONLY with JSON (no markdown):\n{"headline":"warm specific headline","narrative":"2-3 warm sentences","bigWin":"best moment 1 sentence","pattern":"cross-provider pattern 1-2 sentences","forHome":["up to 3 home tips under 15 words each"],"lookAhead":"1 optimistic sentence"}`;
     try {
-      const r = await fetch(AI_ENDPOINT, { method:"POST", headers:apiHeaders(), body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000, messages:[{role:"user",content:prompt}] }) });
+      const r = await fetch(AI_ENDPOINT, { method:"POST", headers:apiHeaders(), body:JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:1000, messages:[{role:"user",content:prompt}] }) });
       const data = await r.json();
       const text = data.content?.map(b=>b.text||"").join("") || "";
       setDigest(JSON.parse(text.replace(/```json|```/g,"").trim()));
@@ -841,7 +841,7 @@ function DocsGoalsScreen({ child, goals, docs, onGoalsChange }) {
     const allGoals = [...docs.flatMap(d=>d.goals||[]).map(g=>`[Official] ${g}`), ...goals.map(g=>`[Family] ${g.text}`)].join("\n");
     const prompt = `Generate a progress report for ${child?.name||"this child"}, age ${child?.age||"unknown"}, ${child?.diagnosis||"special needs"}.\n\nGOALS:\n${allGoals||"No goals set yet."}\n\nRespond ONLY with JSON:\n{"reportTitle":"warm title","overallSummary":"2-3 warm sentences","goalProgress":[{"goal":"goal","source":"source","status":"On Track or Making Progress or Needs Attention or Not Yet Started","evidence":"evidence","tip":"tip"}],"focusAreas":["focus areas"],"strengths":["strengths"],"suggestedChanges":["changes"],"encouragement":"closing"}`;
     try {
-      const r = await fetch(AI_ENDPOINT, { method:"POST", headers:apiHeaders(), body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000, messages:[{role:"user",content:prompt}] }) });
+      const r = await fetch(AI_ENDPOINT, { method:"POST", headers:apiHeaders(), body:JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:1000, messages:[{role:"user",content:prompt}] }) });
       const data = await r.json();
       const text = data.content?.map(b=>b.text||"").join("") || "";
       setReport(JSON.parse(text.replace(/```json|```/g,"").trim()));
@@ -1326,7 +1326,7 @@ function ChatPanel({ onClose, role="parent", child, sessions, goals, therapies }
     setInput(""); setShowSugg(false);
     const next=[...messages,{role:"user",content:q}]; setMessages(next); setLoading(true);
     try {
-      const res=await fetch(AI_ENDPOINT,{method:"POST",headers:apiHeaders(),body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:systemPrompt,messages:next.map(m=>({role:m.role,content:m.content}))})});
+      const res=await fetch(AI_ENDPOINT,{method:"POST",headers:apiHeaders(),body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,system:systemPrompt,messages:next.map(m=>({role:m.role,content:m.content}))})});
       const data=await res.json();
       if (data.error) { console.error("[Readily] API error:", data.error); throw new Error(data.error.message || "API error"); }
       setMessages(prev=>[...prev,{role:"assistant",content:data.content?.map(b=>b.text||"").join("")||"Sorry, I couldn't get a response."}]);
@@ -1787,15 +1787,16 @@ export default function ReadilyApp({ session }) {
       {isMobile && !isProvider && (
         <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:200, background:T.nav, borderTop:"1px solid rgba(255,255,255,0.08)", display:"flex", height:60, paddingBottom:"env(safe-area-inset-bottom)" }}>
           {[
-            {id:"dashboard", icon:"⊞", label:"Home"},
+            {id:"dashboard", icon:"⊞",  label:"Home"},
             {id:"passport",  icon:"🪪", label:"Profile"},
             {id:"digest",    icon:"📬", label:"Digest"},
             {id:"documents", icon:"📁", label:"Docs"},
             {id:"costs",     icon:"💰", label:"Costs"},
+            {id:"provider",  icon:"🩺", label:"Provider"},
           ].map(n=>(
             <button key={n.id} onClick={()=>setPage(n.id)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, background:"none", border:"none", cursor:"pointer", color:page===n.id?"#0d9488":"rgba(255,255,255,0.4)", padding:"6px 0" }}>
-              <span style={{ fontSize:18, lineHeight:1 }}>{n.icon}</span>
-              <span style={{ fontSize:9, fontWeight:page===n.id?700:500, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.02em" }}>{n.label}</span>
+              <span style={{ fontSize:16, lineHeight:1 }}>{n.icon}</span>
+              <span style={{ fontSize:8, fontWeight:page===n.id?700:500, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.02em" }}>{n.label}</span>
             </button>
           ))}
         </div>
