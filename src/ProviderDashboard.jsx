@@ -141,6 +141,13 @@ function SessionLogForm({ child, session: authSession, onLogged }) {
 
   const focusAreas = FOCUS_AREAS_BY_LOGGER[loggerType];
   const toggleFocus = f => setFocus(p=>p.includes(f)?p.filter(x=>x!==f):[...p,f]);
+  const [customFocus, setCustomFocus] = useState("");
+  const addCustomFocus = () => {
+    const v = customFocus.trim();
+    if (!v || focus.includes(v)) { setCustomFocus(""); return; }
+    setFocus(p=>[...p,v]);
+    setCustomFocus("");
+  };
   const canSubmit = focus.length>0 && response && (win||challenge);
   const ta = { width:"100%", padding:"10px 12px", background:T.card, border:`1.5px solid ${T.border}`, borderRadius:8, fontFamily:"'DM Sans',sans-serif", fontSize:13, color:T.ink, minHeight:68, resize:"vertical", boxSizing:"border-box" };
 
@@ -224,6 +231,13 @@ function SessionLogForm({ child, session: authSession, onLogged }) {
           {focusAreas.map(f=>(
             <button key={f} onClick={()=>toggleFocus(f)} style={{ padding:"6px 12px", borderRadius:20, border:focus.includes(f)?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`, background:focus.includes(f)?"rgba(56,189,248,0.15)":"transparent", color:focus.includes(f)?T.blue:T.ink3, fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:focus.includes(f)?700:400, cursor:"pointer" }}>{f}</button>
           ))}
+          {focus.filter(f=>!focusAreas.includes(f)).map(f=>(
+            <button key={f} onClick={()=>toggleFocus(f)} style={{ padding:"6px 12px", borderRadius:20, border:`1.5px solid ${T.blue}`, background:"rgba(56,189,248,0.15)", color:T.blue, fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700, cursor:"pointer" }}>{f} ×</button>
+          ))}
+          <div style={{ display:"flex", gap:6, width:"100%", marginTop:4 }}>
+            <input type="text" value={customFocus} onChange={e=>setCustomFocus(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addCustomFocus()} placeholder="Add custom area..." style={{ flex:1, padding:"6px 12px", borderRadius:20, border:`1.5px solid ${T.border}`, background:T.card, color:T.ink, fontFamily:"'DM Sans',sans-serif", fontSize:12, outline:"none" }} />
+            <button onClick={addCustomFocus} style={{ padding:"6px 14px", borderRadius:20, border:`1.5px solid ${T.blue}`, background:"transparent", color:T.blue, fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700, cursor:"pointer" }}>+ Add</button>
+          </div>
         </div>
       </div>
 

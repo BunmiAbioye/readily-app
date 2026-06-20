@@ -184,12 +184,37 @@ const TAG_OPTS = {
 };
 
 function TagPicker({ opts, selected, onChange, color }) {
+  const [custom, setCustom] = useState("");
   const toggle = t => onChange(selected.includes(t) ? selected.filter(x=>x!==t) : [...selected,t]);
+  const addCustom = () => {
+    const val = custom.trim();
+    if (!val || selected.includes(val)) { setCustom(""); return; }
+    onChange([...selected, val]);
+    setCustom("");
+  };
   return (
-    <div style={{ display:"flex", flexWrap:"wrap", gap:"6px", marginTop:"8px" }}>
-      {opts.map(t => (
-        <button key={t} onClick={()=>toggle(t)} style={{ padding:"5px 12px", borderRadius:"20px", border:selected.includes(t)?`2px solid ${color}`:`1.5px solid ${T.border}`, background:selected.includes(t)?color+"18":T.white, color:selected.includes(t)?color:T.ink3, fontFamily:"'DM Sans',sans-serif", fontSize:"12px", fontWeight:selected.includes(t)?"700":"400", cursor:"pointer", transition:"all 0.15s" }}>{t}</button>
-      ))}
+    <div style={{ marginTop:"8px" }}>
+      <div style={{ display:"flex", flexWrap:"wrap", gap:"6px", marginBottom:"8px" }}>
+        {opts.map(t => (
+          <button key={t} onClick={()=>toggle(t)} style={{ padding:"5px 12px", borderRadius:"20px", border:selected.includes(t)?`2px solid ${color}`:`1.5px solid ${T.border}`, background:selected.includes(t)?color+"18":T.white, color:selected.includes(t)?color:T.ink3, fontFamily:"'DM Sans',sans-serif", fontSize:"12px", fontWeight:selected.includes(t)?"700":"400", cursor:"pointer", transition:"all 0.15s" }}>{t}</button>
+        ))}
+        {selected.filter(s=>!opts.includes(s)).map(t=>(
+          <button key={t} onClick={()=>toggle(t)} style={{ padding:"5px 12px", borderRadius:"20px", border:`2px solid ${color}`, background:color+"18", color:color, fontFamily:"'DM Sans',sans-serif", fontSize:"12px", fontWeight:"700", cursor:"pointer" }}>{t} ×</button>
+        ))}
+      </div>
+      <div style={{ display:"flex", gap:6 }}>
+        <input
+          type="text"
+          value={custom}
+          onChange={e=>setCustom(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&addCustom()}
+          placeholder="Add custom..."
+          style={{ flex:1, padding:"5px 10px", borderRadius:20, border:`1.5px solid ${T.border}`, fontFamily:"'DM Sans',sans-serif", fontSize:12, color:T.ink, outline:"none", background:T.white }}
+          onFocus={e=>e.target.style.borderColor=color}
+          onBlur={e=>e.target.style.borderColor=T.border}
+        />
+        <button onClick={addCustom} style={{ padding:"5px 12px", borderRadius:20, border:`1.5px solid ${color}`, background:"transparent", color:color, fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700, cursor:"pointer" }}>+ Add</button>
+      </div>
     </div>
   );
 }
@@ -1200,6 +1225,14 @@ function ProviderView({ child, session: authSession }) {
         <label style={{ fontSize:10, fontWeight:700, color:"#6b8299", fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.08em", display:"block", marginBottom:8 }}>{loggerType==="parent"?"WHAT ACTIVITY OR SITUATION? *":"WHAT DID YOU WORK ON? *"}</label>
         <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
           {focusAreas.map(f=><button key={f} onClick={()=>toggleFocus(f)} style={{ padding:"6px 12px", borderRadius:20, border:focus.includes(f)?"1.5px solid #38bdf8":"1.5px solid #2a3348", background:focus.includes(f)?"rgba(56,189,248,0.15)":"transparent", color:focus.includes(f)?"#38bdf8":"#6b8299", fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:focus.includes(f)?700:400, cursor:"pointer" }}>{f}</button>)}
+          {focus.filter(f=>!focusAreas.includes(f)).map(f=>(
+            <button key={f} onClick={()=>toggleFocus(f)} style={{ padding:"6px 12px", borderRadius:20, border:"1.5px solid #38bdf8", background:"rgba(56,189,248,0.15)", color:"#38bdf8", fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700, cursor:"pointer" }}>{f} ×</button>
+          ))}
+          <div style={{ display:"flex", gap:6, width:"100%", marginTop:2 }}>
+            <input type="text" id="custom-focus" placeholder="Add custom area..." style={{ flex:1, padding:"6px 12px", borderRadius:20, border:"1.5px solid #2a3348", background:"#1e2535", color:"#eef2ff", fontFamily:"'DM Sans',sans-serif", fontSize:12, outline:"none" }}
+              onKeyDown={e=>{ if(e.key==="Enter"){ const v=e.target.value.trim(); if(v&&!focus.includes(v)){ toggleFocus(v); e.target.value=""; } } }} />
+            <button onClick={()=>{ const inp=document.getElementById("custom-focus"); const v=inp?.value.trim(); if(v&&!focus.includes(v)){ toggleFocus(v); inp.value=""; } }} style={{ padding:"6px 14px", borderRadius:20, border:"1.5px solid #38bdf8", background:"transparent", color:"#38bdf8", fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:700, cursor:"pointer" }}>+ Add</button>
+          </div>
         </div>
       </div>
       <div style={{ marginBottom:18 }}>
@@ -1239,7 +1272,7 @@ function Dashboard({ setPage, child, sessions, goals, therapies }) {
     <div style={{ maxWidth:680, margin:"0 auto" }}>
       <div style={{ marginBottom:24 }}>
         <div style={{ fontSize:11, fontWeight:700, color:T.teal, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.08em", marginBottom:4 }}>GOOD MORNING</div>
-        <h2 style={{ margin:"0 0 4px", fontSize:isMobile?22:26, fontWeight:800, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>Welcome back 👋</h2>
+        <h2 style={{ margin:"0 0 4px", fontSize:isMobile?22:26, fontWeight:800, color:T.ink, fontFamily:"'DM Sans',sans-serif" }}>{child ? "Welcome back 👋" : "Welcome! 👋"}</h2>
         <p style={{ margin:0, fontSize:14, color:T.ink3, fontFamily:"'DM Sans',sans-serif" }}>Here's {childName}'s snapshot for the week.</p>
       </div>
 
