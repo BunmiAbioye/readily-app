@@ -6,7 +6,7 @@ export const config = { runtime: 'nodejs', maxDuration: 60 };
 
 export default async function handler(req) {
   // Verify this is a legitimate cron call
-  const authHeader = req.headers.get('authorization');
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401, headers: { 'Content-Type': 'application/json' },
