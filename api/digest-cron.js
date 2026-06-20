@@ -2,7 +2,7 @@
 // Called by Vercel cron every Friday at 6PM ET (23:00 UTC)
 // vercel.json cron: "0 23 * * 5"
 
-export const config = { runtime: 'edge' };
+export const config = { runtime: 'nodejs', maxDuration: 60 };
 
 export default async function handler(req) {
   // Verify this is a legitimate cron call
@@ -38,6 +38,7 @@ export default async function handler(req) {
       { headers }
     );
     const families = await familiesRes.json();
+    console.log('[Readily] Processing digests for', families.length, 'families');
 
     let sent = 0;
     let errors = 0;
@@ -188,7 +189,9 @@ export default async function handler(req) {
       }
     }
 
-    return new Response(JSON.stringify({ sent, errors }), {
+    console.log(`[Readily] Digest cron complete: ${sent} sent, ${errors} errors`);
+
+    return new Response(JSON.stringify({ success: true, sent, errors }), {
       status: 200, headers: { 'Content-Type': 'application/json' },
     });
 
