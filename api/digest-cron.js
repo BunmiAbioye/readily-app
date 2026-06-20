@@ -83,10 +83,26 @@ export default async function handler(req) {
         });
 
         const aiData = await aiRes.json();
-        const raw = aiData.content?.[0]?.text || '{}';
+        console.log('[Readily] AI response status:', aiRes.status, 'type:', aiData.type);
+        
+        if (!aiRes.ok || aiData.type === 'error') {
+          console.error('[Readily] AI error:', JSON.stringify(aiData));
+          errors++;
+          continue;
+        }
+
+        const raw = aiData.content?.[0]?.text || '';
+        if (!raw) { console.error('[Readily] Empty AI response for family:', family.id); errors++; continue; }
+        
         let digest;
-        try { digest = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
-        catch { continue; }
+        try { 
+          digest = JSON.parse(raw.replace(/```json|```/g, '').trim()); 
+          if (!digest.headline) throw new Error('Missing headline');
+        } catch(parseErr) { 
+          console.error('[Readily] JSON parse error:', parseErr.message, 'raw:', raw.slice(0, 200));
+          errors++;
+          continue; 
+        }
 
         // Build email HTML
         const week = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });

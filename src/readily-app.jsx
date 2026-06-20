@@ -1787,15 +1787,16 @@ export default function ReadilyApp({ session }) {
       {isMobile && !isProvider && (
         <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:200, background:T.nav, borderTop:"1px solid rgba(255,255,255,0.08)", display:"flex", height:60, paddingBottom:"env(safe-area-inset-bottom)" }}>
           {[
-            {id:"dashboard", icon:"⊞", label:"Home"},
+            {id:"dashboard", icon:"⊞",  label:"Home"},
             {id:"passport",  icon:"🪪", label:"Profile"},
             {id:"digest",    icon:"📬", label:"Digest"},
             {id:"documents", icon:"📁", label:"Docs"},
             {id:"costs",     icon:"💰", label:"Costs"},
+            {id:"provider",  icon:"🩺", label:"Provider"},
           ].map(n=>(
             <button key={n.id} onClick={()=>setPage(n.id)} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, background:"none", border:"none", cursor:"pointer", color:page===n.id?"#0d9488":"rgba(255,255,255,0.4)", padding:"6px 0" }}>
-              <span style={{ fontSize:18, lineHeight:1 }}>{n.icon}</span>
-              <span style={{ fontSize:9, fontWeight:page===n.id?700:500, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.02em" }}>{n.label}</span>
+              <span style={{ fontSize:16, lineHeight:1 }}>{n.icon}</span>
+              <span style={{ fontSize:8, fontWeight:page===n.id?700:500, fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.02em" }}>{n.label}</span>
             </button>
           ))}
         </div>
