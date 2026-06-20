@@ -184,7 +184,7 @@ const TAG_OPTS = {
 };
 
 function TagPicker({ opts, selected, onChange, color }) {
-  const [custom, setCustom] = React.useState("");
+  const [custom, setCustom] = useState("");
   const toggle = t => onChange(selected.includes(t) ? selected.filter(x=>x!==t) : [...selected,t]);
   const addCustom = () => {
     const val = custom.trim();
