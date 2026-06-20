@@ -31,7 +31,10 @@ export default async function handler(req) {
     'Authorization': `Bearer ${supabaseKey}`,
   };
 
-  try {
+  // Respond immediately to avoid gateway timeout
+  // Process families asynchronously in background
+  const processDigests = async () => {
+    try {
     // Get all families with digest enabled
     const familiesRes = await fetch(
       `${supabaseUrl}/rest/v1/families?select=id,email,name&digest_enabled=eq.true`,
@@ -188,14 +191,17 @@ export default async function handler(req) {
       }
     }
 
-    return new Response(JSON.stringify({ sent, errors }), {
-      status: 200, headers: { 'Content-Type': 'application/json' },
-    });
+    console.log(`[Readily] Digest cron complete: ${sent} sent, ${errors} errors`);
+    } catch(e) {
+      console.error('[Readily] Cron processing error:', e);
+    }
+  };
 
-  } catch(e) {
-    console.error('[Readily] Cron error:', e);
-    return new Response(JSON.stringify({ error: e.message }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  // Fire and forget - don't await
+  processDigests();
+
+  // Return immediately before timeout
+  return new Response(JSON.stringify({ status: 'processing', message: 'Digest generation started' }), {
+    status: 200, headers: { 'Content-Type': 'application/json' },
+  });
 }
