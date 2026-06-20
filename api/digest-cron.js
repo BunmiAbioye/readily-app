@@ -2,7 +2,7 @@
 // Called by Vercel cron every Friday at 6PM ET (23:00 UTC)
 // vercel.json cron: "0 23 * * 5"
 
-export const config = { runtime: 'edge' };
+export const config = { runtime: 'nodejs', maxDuration: 60 };
 
 export default async function handler(req) {
   // Verify this is a legitimate cron call
@@ -31,16 +31,14 @@ export default async function handler(req) {
     'Authorization': `Bearer ${supabaseKey}`,
   };
 
-  // Respond immediately to avoid gateway timeout
-  // Process families asynchronously in background
-  const processDigests = async () => {
-    try {
+  try {
     // Get all families with digest enabled
     const familiesRes = await fetch(
       `${supabaseUrl}/rest/v1/families?select=id,email,name&digest_enabled=eq.true`,
       { headers }
     );
     const families = await familiesRes.json();
+    console.log('[Readily] Processing digests for', families.length, 'families');
 
     let sent = 0;
     let errors = 0;
@@ -192,16 +190,15 @@ export default async function handler(req) {
     }
 
     console.log(`[Readily] Digest cron complete: ${sent} sent, ${errors} errors`);
-    } catch(e) {
-      console.error('[Readily] Cron processing error:', e);
-    }
-  };
 
-  // Fire and forget - don't await
-  processDigests();
+    return new Response(JSON.stringify({ success: true, sent, errors }), {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    });
 
-  // Return immediately before timeout
-  return new Response(JSON.stringify({ status: 'processing', message: 'Digest generation started' }), {
-    status: 200, headers: { 'Content-Type': 'application/json' },
-  });
+  } catch(e) {
+    console.error('[Readily] Cron error:', e);
+    return new Response(JSON.stringify({ error: e.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json' },
+    });
+  }
 }
