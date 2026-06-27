@@ -34,16 +34,18 @@ export default async function handler(req, ctx) {
         { headers }
       );
       const families = await familiesRes.json();
-      console.log('[Readily] Processing', families.length, 'families');
+      console.log('[Readily] Processing', families.length, 'families:', families.map(f=>f.email).join(', '));
 
       for (const family of families) {
         try {
+          console.log('[Readily] Processing family:', family.email);
           const childRes = await fetch(
             `${supabaseUrl}/rest/v1/children?family_id=eq.${family.id}&limit=1`,
             { headers }
           );
           const children = await childRes.json();
-          if (!children?.length) continue;
+          console.log('[Readily] Children found for', family.email, ':', children?.length || 0);
+          if (!children?.length) { console.log('[Readily] Skipping - no children:', family.email); continue; }
           const child = children[0];
 
           const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -74,14 +76,26 @@ export default async function handler(req, ctx) {
           });
 
           const aiData = await aiRes.json();
-          if (!aiRes.ok) { console.error('[Readily] AI error:', JSON.stringify(aiData)); continue; }
+          console.log('[Readily] AI response status for', family.email, ':', aiRes.status);
+          if (!aiRes.ok) { console.error('[Readily] AI error for', family.email, ':', JSON.stringify(aiData)); continue; }
 
           const raw = aiData.content?.[0]?.text || '';
-          if (!raw) { console.error('[Readily] Empty AI response'); continue; }
+          if (!raw) { console.error('[Readily] Empty AI response for', family.email); continue; }
 
           let digest;
-          try { digest = JSON.parse(raw.trim()); }
-          catch { console.error('[Readily] JSON parse error:', raw.slice(0,100)); continue; }
+          try {
+            // Strip markdown code fences if present
+            let cleaned = raw.trim();
+            cleaned = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+            // Find JSON object boundaries
+            const start = cleaned.indexOf('{');
+            const end = cleaned.lastIndexOf('}');
+            if (start !== -1 && end !== -1) cleaned = cleaned.slice(start, end + 1);
+            digest = JSON.parse(cleaned);
+          } catch(e) {
+            console.error('[Readily] JSON parse error for', family.email, ':', e.message, 'raw:', raw.slice(0,150));
+            continue;
+          }
 
           if (!digest.headline) { console.error('[Readily] Missing headline'); continue; }
 
@@ -121,7 +135,7 @@ export default async function handler(req, ctx) {
             }),
           });
 
-          console.log('[Readily] Digest sent to', family.email);
+          console.log('[Readily] Digest sent successfully to', family.email);
         } catch(e) {
           console.error(`[Readily] Error for family ${family.id}:`, e.message);
         }
