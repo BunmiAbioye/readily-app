@@ -404,7 +404,7 @@ function PassportBuilder({ session, child, onSaved }) {
     setSaved(true);
     // For new profiles navigate away after 1.5s, for edits just show confirmation
     if (!child?.id) {
-      // Tag user in Resend as has_child: true (first profile creation)
+      // Tag user in Resend and Brevo as has_child: true
       try {
         await fetch('/api/resend-tag', {
           method: 'POST',
@@ -412,6 +412,13 @@ function PassportBuilder({ session, child, onSaved }) {
           body: JSON.stringify({ email: session?.user?.email, action: 'child_created' }),
         });
       } catch(e) { console.error('[Readily] Resend child tag error:', e); }
+      try {
+        await fetch('/api/brevo-contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: session?.user?.email, action: 'child_created' }),
+        });
+      } catch(e) { console.error('[Readily] Brevo child tag error:', e); }
       setTimeout(() => { onSaved && onSaved(); }, 1500);
     }
   };
