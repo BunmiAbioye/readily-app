@@ -34,7 +34,7 @@ export default async function handler(req) {
     <div style="background:#ffffff;border-radius:16px;padding:36px 32px;border:1px solid #e8e4de;">
 
       <h1 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#0f0e0c;line-height:1.3;">
-        Welcome to Readily${isProvider ? '' : ' — your child\'s care team is waiting'}
+        Welcome to Readily ⚡
       </h1>
 
       <p style="margin:0 0 20px;font-size:15px;color:#6b6760;line-height:1.7;">
@@ -91,7 +91,7 @@ export default async function handler(req) {
         to: [email],
         subject: isProvider
           ? 'You\'re on the Readily list — here\'s what\'s next'
-          : 'You\'re on the list — and you can start right now',
+          : 'Welcome to Readily ⚡',
         html,
       }),
     });

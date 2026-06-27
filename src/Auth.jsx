@@ -52,6 +52,26 @@ export default function Auth({ initialMode = 'login', onBack, onAuth, onLegal })
         if (error) throw error
         if (data.user) {
           await supabase.from('families').upsert({ id: data.user.id, email: email.trim(), name: name.trim() })
+          // Add to Resend audience + send welcome email
+          try {
+            await fetch('/api/resend-tag', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: email.trim(),
+                firstName: name.trim().split(' ')[0],
+                action: 'signup',
+              }),
+            });
+          } catch(e) { console.error('[Readily] Resend signup tag error:', e); }
+          // Send welcome email
+          try {
+            await fetch('/api/waitlist-welcome', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: email.trim(), role: 'parent' }),
+            });
+          } catch(e) { console.error('[Readily] Welcome email error:', e); }
         }
         if (data.session) { onAuth && onAuth() }
         else { setDone(true) }
