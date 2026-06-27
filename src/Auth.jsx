@@ -72,6 +72,18 @@ export default function Auth({ initialMode = 'login', onBack, onAuth, onLegal })
               body: JSON.stringify({ email: email.trim(), role: 'parent' }),
             });
           } catch(e) { console.error('[Readily] Welcome email error:', e); }
+          // Add to Brevo for nurture sequence
+          try {
+            await fetch('/api/brevo-contact', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: email.trim(),
+                firstName: name.trim().split(' ')[0],
+                action: 'signup',
+              }),
+            });
+          } catch(e) { console.error('[Readily] Brevo signup error:', e); }
         }
         if (data.session) { onAuth && onAuth() }
         else { setDone(true) }
