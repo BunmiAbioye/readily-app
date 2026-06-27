@@ -40,7 +40,7 @@ export default async function handler(req) {
         }),
       });
       const data = await res.json();
-      console.log('[Readily] Resend signup contact:', res.status, data);
+      console.log('[Readily] Resend signup contact:', res.status, JSON.stringify(data));
       return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
 
@@ -60,7 +60,7 @@ export default async function handler(req) {
         }),
       });
       const data = await res.json();
-      console.log('[Readily] Resend child_created tag:', res.status, data);
+      console.log('[Readily] Resend child_created tag:', res.status, JSON.stringify(data));
       return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
 

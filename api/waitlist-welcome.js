@@ -91,7 +91,7 @@ export default async function handler(req) {
         to: [email],
         subject: isProvider
           ? 'You\'re on the Readily list — here\'s what\'s next'
-          : 'You\'re on the list — and you can start right now',
+          : 'Welcome to Readily ⚡',
         html,
       }),
     });
