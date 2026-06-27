@@ -83,8 +83,19 @@ export default async function handler(req, ctx) {
           if (!raw) { console.error('[Readily] Empty AI response for', family.email); continue; }
 
           let digest;
-          try { digest = JSON.parse(raw.trim()); }
-          catch { console.error('[Readily] JSON parse error:', raw.slice(0,100)); continue; }
+          try {
+            // Strip markdown code fences if present
+            let cleaned = raw.trim();
+            cleaned = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+            // Find JSON object boundaries
+            const start = cleaned.indexOf('{');
+            const end = cleaned.lastIndexOf('}');
+            if (start !== -1 && end !== -1) cleaned = cleaned.slice(start, end + 1);
+            digest = JSON.parse(cleaned);
+          } catch(e) {
+            console.error('[Readily] JSON parse error for', family.email, ':', e.message, 'raw:', raw.slice(0,150));
+            continue;
+          }
 
           if (!digest.headline) { console.error('[Readily] Missing headline'); continue; }
 
