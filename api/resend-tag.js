@@ -10,9 +10,8 @@ export default async function handler(req) {
   }
 
   const resendKey = process.env.RESEND_API_KEY;
-  const audienceId = process.env.RESEND_AUDIENCE_ID;
 
-  if (!resendKey || !audienceId) {
+  if (!resendKey) {
     return new Response(JSON.stringify({ error: 'Resend not configured' }), {
       status: 500, headers: { 'Content-Type': 'application/json' },
     });
@@ -24,7 +23,7 @@ export default async function handler(req) {
 
     if (action === 'signup') {
       // Add new contact to Resend audience with has_child: false
-      const res = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
+      const res = await fetch('https://api.resend.com/contacts', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${resendKey}`,
@@ -47,7 +46,7 @@ export default async function handler(req) {
 
     if (action === 'child_created') {
       // Update existing contact — set has_child: true
-      const res = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts/${encodeURIComponent(email)}`, {
+      const res = await fetch(`https://api.resend.com/contacts/${encodeURIComponent(email)}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${resendKey}`,
