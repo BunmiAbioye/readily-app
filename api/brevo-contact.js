@@ -35,7 +35,8 @@ export default async function handler(req) {
             HAS_CHILD: false,
             SIGNUP_DATE: new Date().toISOString().slice(0, 10),
           },
-          updateEnabled: true, // update if already exists
+          listIds: [5],
+          updateEnabled: true,
         }),
       });
       const data = await res.json();
