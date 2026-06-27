@@ -33,10 +33,10 @@ export default async function handler(req) {
           email,
           first_name: firstName || '',
           unsubscribed: false,
-          properties: {
-            has_child: false,
-            signup_date: new Date().toISOString().slice(0, 10),
-          },
+          properties: [
+            { key: 'has_child', value: 'false' },
+            { key: 'signup_date', value: new Date().toISOString().slice(0, 10) },
+          ],
         }),
       });
       const data = await res.json();
@@ -53,10 +53,10 @@ export default async function handler(req) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          properties: {
-            has_child: true,
-            child_created_at: new Date().toISOString(),
-          },
+          properties: [
+            { key: 'has_child', value: 'true' },
+            { key: 'child_created_at', value: new Date().toISOString() },
+          ],
         }),
       });
       const data = await res.json();
