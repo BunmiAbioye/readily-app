@@ -61,7 +61,8 @@ export default async function handler(req) {
           },
         }),
       });
-      const data = res.status === 204 ? {} : await res.json();
+      let data = {};
+      try { data = res.status === 204 ? {} : await res.json(); } catch(_) {}
       console.log('[Readily] Brevo child_created:', res.status, JSON.stringify(data));
       return new Response(JSON.stringify({ success: true }), {
         status: 200, headers: { 'Content-Type': 'application/json' },
