@@ -39,7 +39,8 @@ export default async function handler(req) {
           updateEnabled: true,
         }),
       });
-      const data = await res.json();
+      let data = {};
+      try { data = await res.json(); } catch(_) {}
       console.log('[Readily] Brevo signup contact:', res.status, JSON.stringify(data));
       return new Response(JSON.stringify({ success: true }), {
         status: 200, headers: { 'Content-Type': 'application/json' },
